@@ -14,6 +14,10 @@
 - [ ] 產出 `docs/spike/relay-transport.md`（含成本試算表）
 - [ ] 結論回填到本 US 嘅「變更歷史」
 
+## 實測結論
+
+推薦方案 A（SQS long-poll）：實測 p50 227ms / p95 515ms（WS 嘅 993ms ÷ 4.4）、idle $0、每月 ≈ $0.03、只需 2 個 infra 資源、0 個 Lambda、0 個 setup 陷阱；AppSync Events 喺 ap-southeast-1 + 舊 CLI 建唔到（CFN schema 冇 EventConfig）→ blocked。詳見 docs/spike/relay-transport.md
+
 ## 業務規則
 
 單用戶量級（≤ 10 訊息/分鐘、≤ 1 常駐連線）；唔引入常駐 Fargate（成本 > $30/月 直接否決）

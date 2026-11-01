@@ -98,10 +98,10 @@
 | 1 | M01 | 用戶放開錄音鍵 | 音訊（**唔上傳**）→ device STT → 可編輯文字 |
 | 2 | M01 | 送出 | `sendMessage(text, request_id=UUID)` → M02 |
 | 3 | M02 | 驗證 token | 401 → M01 顯示「請重新登入」 |
-| 4 | M02 | 落庫 + 派發 | transcript row（role=user）+ 投遞任務 → M03 |
+| 4 | M02 | 落庫 + 派發 | transcript row（role=user）+ 投遞任務到 **SQS 隊列**（transport 已定案） → M03 長輪詢取件 |
 | 5 | M02 → M01 | ack | 氣泡狀態「已送達」 |
 | 6 | M03 | 執行 | sidecar 收到任務 → Pi SDK session → streaming delta → 回傳 M02 → M01 追加氣泡 |
-| 7 | M03 | 完成 | 結果落 transcript + 任務狀態 = completed |
+| 7 | M03 | 完成 | 結果落 transcript + 任務狀態 = completed（結果經同一條隊列回 App） |
 | 8 | M02 → 裝置 | 推播 | APNs/FCM（摘要 payload + mp3 URL）→ M01 顯示通知 |
 
 ### 5.2 高風險確認流
@@ -113,6 +113,7 @@ M03 工具調用 → M04 Risk Gate 判定 `write`/`external_effect` → M04 產�
 - `request_id` 由 M01 產生並持久化（本地）→ 重試用同一個 → M02 dedupe → M03 唔會重複執行。
 - Sidecar 認證同 App 認證分開（各自 token / client credentials）→ 令 Sidecar 唔需要用 App token。
 - 網絡中斷 → M01 重連後按 `last_seen_cursor` 補拉 transcript（M02 提供增量讀取）。
+- **Transport = SQS long-poll**（SPIKE-001 實測定案）：App / Sidecar 都經同一條 SQS 隊列往返；sidecar 用 20 秒長輪詢（idle 成本 $0）；Mac 離線時訊息留喺隊列（MessageRetentionPeriod ≥ 1 小時），返嚟自動補取。
 
 ### 5.4 對話 session 分流（新增 — M03 決策，M01 只提供入口）
 
@@ -163,7 +164,7 @@ M03 工具調用 → M04 Risk Gate 判定 `write`/`external_effect` → M04 產�
 
 | 選型 | 決定 | 待驗證 |
 |---|---|---|
-| Relay transport | **未定**（SPIKE-001）：AppSync Events（serverless pub/sub、閒置免費）／SQS long-poll（最簡、最穩）／API Gateway WebSocket（最通用但每訊息經 Lambda） | 端到端延遲 p50、每千訊息成本 |
+| Relay transport | **已定：SQS long-poll**（SPIKE-001 實測：p50 227ms / p95 515ms / idle $0 / 2 個 infra 資源）| 真 streaming 升級路徑：WS **點對點**（Management API 直接推去指定 connection，唔廣播、唔掃 DynamoDB） |
 | 認證 | 自製 token + Lambda authorizer，AuthProvider 抽象（將來換 Cognito） | token 遺失 recovery（OQ） |
 | 語音 | STT device native（私隱 + 粵語準確）；TTS Polly（支援鎖屏語音通知） | SPIKE-002/003 實測 |
 | 推播 | APNs/FCM 直接發（唔經第三方網關） | 憑證管理 + payload 上限 |

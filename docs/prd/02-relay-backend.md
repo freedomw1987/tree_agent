@@ -15,7 +15,7 @@
 | **FR-M02-01** | 認證 authorizer（AuthProvider 實作：單用戶自製 token） | Given 無效 token When 呼叫 Then 401 + 明確錯誤碼；App 顯示「請重新登入」而非 5xx |
 | **FR-M02-02** | 訊息收發 API（`request_id` 冪等、ack ≤ 2 秒） | Given 同一 `request_id` 送兩次 Then 只入庫一次、只派發一次任務 |
 | **FR-M02-03** | transcript 持久化（user_id / request_id / role / content / kind / ts） | Given 任一訊息 When 落庫 Then 增量拉取（cursor）唔漏唔重 |
-| **FR-M02-04** | transport（App ↔ Sidecar 投遞）—— SPIKE-001 選型 | Given 選型落地 Then 端到端延遲 ≤ 5 秒（p50）、閒置零常駐成本 |
+| **FR-M02-04** | transport：**已定案 = SQS long-poll**（SPIKE-001 實測：p50 227ms / p95 515ms / idle $0 / 每月 ≈ $0.03 / 2 個 infra 資源） | Given 派任務 When 入隊 Then sidecar 長輪詢（20 秒）取件；Mac 離線時訊息留喺隊列，返嚟自動補取 |
 | **FR-M02-05** | TTS job（Polly → mp3 → S3，24h cache，同文字只合一次） | Given 同一段文字兩次請求 Then 只產生一次 mp3 |
 | **FR-M02-06** | push dispatcher（APNs/FCM，只載任務摘要 + mp3 URL） | Given 任務完成 Then 收到推播；payload 唔包含完整 transcript |
 | **FR-M02-07** | 成本守衛（預算 alarm、單任務預算上限中止、用量聚合） | Given 單任務超預算 When 觸發 Then 中止 → partial → 通知 |
@@ -24,9 +24,10 @@
 
 ## 3. 依賴關係
 
-- **上游**：AWS 帳戶（Lambda / DynamoDB / S3 / IAM）、SPIKE-001（transport 選型）
+- **上游**：AWS 帳戶（Lambda / DynamoDB / S3 / IAM）、SPIKE-001（transport 選型 → **已定案 SQS long-poll**）
 - **下游**：M01（App client）、M03（Sidecar client）、M04（AuthProvider 實作喺呢度，介面喺 M04）
 - **不依賴**：M03 唔可以反向依賴 DynamoDB 內部結構（只經 API）
+- **新業務規則**：SQS queue 保留期 ≥ 1 小時（Mac 離線時任務唔會跌）；queue policy 唔可以長期 `Principal: "*"`（正式版收窄到 authorizer 背書）；sidecar 長輪詢間隔 20 秒（idle 成本 $0）
 
 ## 4. 五狀態（DoD-Full）
 

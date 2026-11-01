@@ -41,6 +41,9 @@ const items = [
     id: "SPIKE-001",
     type: "Spike",
     module: "M02",
+    status: "等待校驗",
+    conclusion:
+      "推薦方案 A（SQS long-poll）：實測 p50 227ms / p95 515ms（WS 嘅 993ms ÷ 4.4）、idle $0、每月 ≈ $0.03、只需 2 個 infra 資源、0 個 Lambda、0 個 setup 陷阱；AppSync Events 喺 ap-southeast-1 + 舊 CLI 建唔到（CFN schema 冇 EventConfig）→ blocked。詳見 docs/spike/relay-transport.md",
     title: "AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket）",
     phase: "0 架構補證",
     priority: "P0",
@@ -657,6 +660,9 @@ const md = (i) =>
     "",
     ...i.dod.map((d) => `- [ ] ${d}`),
     "",
+    ...(i.conclusion
+      ? ["## 實測結論", "", i.conclusion, ""]
+      : []),
     "## 業務規則",
     "",
     i.biz,
@@ -712,6 +718,9 @@ const html = (i) =>
     '<ul class="dod">',
     ...i.dod.map((d) => `  <li>${esc(d)}</li>`),
     "</ul>",
+    ...(i.conclusion
+      ? ["<h2>實測結論</h2>", `<div class="rules">${esc(i.conclusion)}</div>`]
+      : []),
     "<h2>業務規則</h2>",
     `<div class="rules">${esc(i.biz)}</div>`,
     "<h2>依賴</h2>",
@@ -744,6 +753,9 @@ const req = (i) =>
     "| 日期 | 變更 | 原因 |",
     "|------|------|------|",
     `| ${DATE} | 建立（來源：dav-planner 需求訪談） | 首次澄清 |`,
+    ...(i.conclusion
+      ? [`| ${DATE} | 實測結論回填 | ${i.conclusion.slice(0, 120)}… |`]
+      : []),
     "",
   ]);
 
@@ -784,7 +796,7 @@ const backlog = () =>
     "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ...items.map(
       (i) =>
-        `| ${i.id} | ${i.type} | ${i.module} | ${i.title} | ${i.ac.length} 條 BDD + DoD ｜ [md](ac/${i.id}.md) ｜ [html](ac/${i.id}.html) | ${i.priority} | ${i.sp} | PENDING | ${i.deps.length ? i.deps.join(", ") : "—"} |`,
+        `| ${i.id} | ${i.type} | ${i.module} | ${i.title} | ${i.ac.length} 條 BDD + DoD ｜ [md](ac/${i.id}.md) ｜ [html](ac/${i.id}.html) | ${i.priority} | ${i.sp} | ${i.status ?? "PENDING"} | ${i.deps.length ? i.deps.join(", ") : "—"} |`,
     ),
     "",
     `**合計**: ${items.length} 個項目（${items.filter((i) => i.type === "US").length} US + ${items.filter((i) => i.type === "Spike").length} Spike + ${items.filter((i) => i.type === "TECH").length} TECH）＝ ${items.reduce((s, i) => s + i.sp, 0)} SP`,
@@ -841,6 +853,7 @@ const backlog = () =>
       `- **業務規則**: ${i.biz}`,
       `- **依賴**: ${i.dep}`,
       `- **驗收方式**: ${i.verify}`,
+      ...(i.conclusion ? [`- **實測結論**: ${i.conclusion}`] : []),
       `- **為什麼這個優先**: ${i.why}`,
       `- **需求錨點**: [req/${i.id}-requirement.md](req/${i.id}-requirement.md)`,
       "",

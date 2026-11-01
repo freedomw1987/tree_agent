@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Voice Agent SPIKE-001 — relay transport 候選方案（臨時資源，量度完會刪）
+  方案 A：SQS long-poll（App/Sidecar 直連 SDK，冇 Lambda）
+  方案 C：API Gateway WebSocket（$connect 記連線 → $default 廣播）
+
+Parameters:
+  Region:
+    Type: String
+    Default: ap-southeast-1
+
+Resources:
+  # ── 方案 A：SQS long-poll ─────────────────────────────────────────────
+  TaskQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-tasks"
+      MessageRetentionPeriod: 300
+      VisibilityTimeout: 30
+      ReceiveMessageWaitTimeSeconds: 20
+
+  TaskQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref TaskQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt TaskQueue.Arn
+
+  # ── 方案 C：API Gateway WebSocket ─────────────────────────────────────
+  ConnTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-conns"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+
+  WsApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-ws"
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  WsHandlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: spike-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                Resource: !GetAtt ConnTable.Arn
+              - Effect: Allow
+                Action: "execute-api:ManageConnections"
+                Resource: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WsApi}/*"
+
+  WsHandler:
+    Type: AWS::Lambda::Function
+    DependsOn: WsHandlerRole
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-ws-handler"
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Timeout: 30
+      MemorySize: 256
+      Role: !GetAtt WsHandlerRole.Arn
+      Environment:
+        Variables:
+          CONN_TABLE: !Ref ConnTable
+      Code:
+        ZipFile: |
+          const ddb = require("@aws-sdk/client-dynamodb");
+          const agm = require("@aws-sdk/client-apigatewaymanagementapi");
+          const TABLE = process.env.CONN_TABLE;
+          const DDB = new ddb.DynamoDBClient({});
+          exports.handler = async (event) => {
+            const route = event.requestContext && event.requestContext.routeKey;
+            const connId = event.requestContext && event.requestContext.connectionId;
+            const domain = event.requestContext && event.requestContext.domainName;
+            const stage = event.requestContext && event.requestContext.stage;
+            if (route === "$connect") {
+              await DDB.send(new ddb.PutItemCommand({
+                TableName: TABLE,
+                Item: { connectionId: { S: connId }, ts: { S: new Date().toISOString() } },
+              }));
+              return { statusCode: 200 };
+            }
+            if (route === "$disconnect") {
+              await DDB.send(new ddb.DeleteItemCommand({
+                TableName: TABLE, Key: { connectionId: { S: connId } },
+              }));
+              return { statusCode: 200 };
+            }
+            const body = event.body || "";
+            const scanned = await DDB.send(new ddb.ScanCommand({ TableName: TABLE }));
+            const items = scanned.Items || [];
+            const client = new agm.ApiGatewayManagementApiClient({
+              endpoint: `https://${domain}/${stage}`,
+            });
+            const stale = [];
+            await Promise.all(items.map(async (it) => {
+              const id = it.connectionId && it.connectionId.S;
+              if (!id) return;
+              try {
+                await client.send(new agm.PostToConnectionCommand({ ConnectionId: id, Data: body }));
+              } catch (e) {
+                stale.push(id);
+              }
+            }));
+            await Promise.all(stale.map((id) => DDB.send(new ddb.DeleteItemCommand({
+              TableName: TABLE, Key: { connectionId: { S: id } },
+            }))));
+            return { statusCode: 200, body: JSON.stringify({ delivered: items.length - stale.length }) };
+          };
+
+  WsHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt WsHandler.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WsApi}/*"
+
+  WsDeploymentV2:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - WsRouteConnect
+      - WsRouteDisconnect
+      - WsRouteDefault
+    Properties:
+      ApiId: !Ref WsApi
+      Description: "SPIKE-001 WebSocket deployment v2"
+
+  WsStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WsApi
+      StageName: "$default"
+      DeploymentId: !Ref WsDeploymentV2
+
+  WsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WsApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WsHandler.Arn}/invocations"
+
+  WsRouteConnect:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WsApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${WsIntegration}"
+
+  WsRouteDisconnect:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WsApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${WsIntegration}"
+
+  WsRouteDefault:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WsApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${WsIntegration}"
+
+Outputs:
+  QueueUrl:
+    Value: !Ref TaskQueue
+  QueueArn:
+    Value: !GetAtt TaskQueue.Arn
+  WsUrl:
+    Value: !Sub "wss://${WsApi}.execute-api.${AWS::Region}.amazonaws.com/$default"
+  WsApiId:
+    Value: !Ref WsApi
+  ConnTableName:
+    Value: !Ref ConnTable
+  Region:
+    Value: !Ref AWS::Region

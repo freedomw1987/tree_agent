@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Voice Agent SPIKE-001 — 方案 B：AppSync Events API（serverless pub/sub，冇 Lambda、冇連線登記）
+  （臨時資源，量度完會刪）
+
+Resources:
+  EventApi:
+    Type: AWS::AppSync::Api
+    Properties:
+      Name: voice-agent-spike-event
+      EventConfig:
+        ApiType: EVENT
+        AuthModes:
+          - API_KEY
+        ChannelNamespace: default
+
+  EventApiKey:
+    Type: AWS::AppSync::ApiKey
+    Properties:
+      ApiId: !Ref EventApi
+      Description: "SPIKE-001 temporary key"
+
+Outputs:
+  EventApiId:
+    Value: !Ref EventApi
+  EventApiKey:
+    Value: !GetAtt EventApiKey.ApiKey
+  EventHttpEndpoint:
+    Value: !Sub "https://${EventApi}.appsync-api.${AWS::Region}.amazonaws.com/event"
+  EventRealtimeEndpoint:
+    Value: !Sub "wss://${EventApi}.appsync-realtime-api.${AWS::Region}.amazonaws.com/graphql"
