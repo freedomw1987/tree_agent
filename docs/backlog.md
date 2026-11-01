@@ -37,7 +37,7 @@
 | M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 9 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
 | M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 7 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | 進行中 | — |
-| M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | 進行中 | SPIKE-001, M00-US-101, M00-US-103 |
+| M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | 等待校驗 | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
 | M00-US-106 | US | M04 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
 | M00-US-111 | US | M02-M04 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | PENDING | M00-US-103 |
@@ -47,7 +47,7 @@
 | M00-US-122 | US | M05 | Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷） | 4 條 BDD + DoD ｜ [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113, M00-US-121 |
 | M00-US-131 | US | M01-M02 | 完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽） | 4 條 BDD + DoD ｜ [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html) | P0 | 5 | PENDING | SPIKE-003, M00-US-104, M00-US-105 |
 | M00-US-132 | US | M01-M02 | 每日任務數統計 + 每日摘要（核心成功指標） | 3 條 BDD + DoD ｜ [md](ac/M00-US-132.md) ｜ [html](ac/M00-US-132.html) | P1 | 3 | PENDING | M00-US-106, M00-US-104 |
-| M00-US-141 | US | M02 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | PENDING | M00-US-104 |
+| M00-US-141 | US | M02 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | 進行中 | M00-US-104 |
 | TECH-401 | TECH | M01 | 自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin） | 1 條 BDD + DoD ｜ [md](ac/TECH-401.md) ｜ [html](ac/TECH-401.html) | P1 | 8 | PENDING | — |
 | TECH-402 | TECH | M03 | Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊） | 2 條 BDD + DoD ｜ [md](ac/TECH-402.md) ｜ [html](ac/TECH-402.html) | P2 | 5 | PENDING | M00-US-103 |
 
@@ -194,7 +194,7 @@
 - **業務規則**: transcript 存 DynamoDB（partition key = user_id；sort key = ts#request_id#role —— **必須包埋 role**，否則同一毫秒內 user/agent 兩條會撞 key、增量拉取會漏條）；每則訊息有 `request_id`（UUID）做冪等鍵；token 唔可以出現喺任何 log
 - **依賴**: SPIKE-001 結論、AWS（Lambda / DynamoDB / relay transport）、M00-US-103
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-104`
-- **實測結論**: 已完成（M02 relay client 層，runtime/relay/）：sendTask（冪等：同 request_id 只入庫/入隊一次）／pollTasks（SQS 長輪詢）／publishResult／pollResults／readTranscript（cursor 增量）＋ 真實 AWS 接線（SQS + DynamoDB）。**真實端到端已通過**（App → tasks queue → Sidecar → results queue → App ＋ DynamoDB transcript，4.96 秒；AWS_E2E=1 opt-in 探針）。已部署 dev stack `voice-agent-m02-relay`（2 條 SQS ＋ 2 個 DynamoDB table，保留 ≥ 1 小時）。**未做**：HTTP API + Lambda authorizer（App 現時要直接用 AWS 憑證，正式版要收窄到 authorizer）、成本守衛
+- **實測結論**: HTTP API 已落地並真實驗證（runtime/relay-api/）：POST /tasks → 202 + requestId（冪等）／GET /transcript → 200 + cursor 增量；認證喺 API Lambda 內用同一個 authorize() 純函式驗 token（無/錯 token → 401、有效 → 202）。**點解唔用 API Gateway REQUEST authorizer**：實測嗰條路徑喺 authorizer 之後、integration 之前回 500，而且 API Lambda 一次都唔會被 invoke（authorizer 有被 invoke、response 正確）→ 改為 Lambda 內驗證，100% 正常。已部署 dev stack `voice-agent-m02-api`（HTTP API + Lambda + IAM），部署腳本 scripts/deploy-api.sh（可重現）。
 - **為什麼這個優先**: P0：呢個係手機 → Mac 嘅唯一通道，亦係「冇消息遺失」嘅保證。
 - **需求錨點**: [req/M00-US-104-requirement.md](req/M00-US-104-requirement.md)
 
@@ -315,6 +315,7 @@
 - **業務規則**: v1 唔使用常駐 Fargate（成本門檻 < $30/月）；單任務上限 15 分鐘 + token 預算（具體數值待 Spike 實測後定，見 OQ-2）
 - **依賴**: M00-US-104
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-141`
+- **實測結論**: AWS 側成本守衛已落地（跟 API stack 一齊部署並驗證）：AWS Budgets 月度 $5 預算（80% 電郵告警 ＋ 100% SNS 告警）、SNS 成本告警 topic、CloudWatch 用量 dashboard（Lambda invocations/errors、SQS messages、DynamoDB consumed capacity）。**未做**：單任務預算上限嘅**代碼**（時間/token 上限 → 中止 → partial → 通知）同用量聚合 API。
 - **為什麼這個優先**: P1：「成本失控」係最大威脅之一，而且好平好快做，唔做就等於放任第一個 AWS 帳單爆。
 - **需求錨點**: [req/M00-US-141-requirement.md](req/M00-US-141-requirement.md)
 

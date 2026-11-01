@@ -46,6 +46,13 @@ run_step "lint: runtime/relay (tsc --noEmit)" \
 run_step "probe: runtime/relay (vitest run)" \
   bash -c "cd '$ROOT/runtime/relay' && npx vitest run --reporter=dot"
 
+# 2d. 探針（relay-api：authorizer / HTTP API / handler 認證）
+run_step "lint: runtime/relay-api (tsc --noEmit)" \
+  bash -c "cd '$ROOT/runtime/relay-api' && npx tsc --noEmit"
+
+run_step "probe: runtime/relay-api (vitest run)" \
+  bash -c "cd '$ROOT/runtime/relay-api' && npx vitest run --reporter=dot"
+
 # 3. 原型 smoke（demo 路線 + 跨 Surface 串連）
 run_step "probe: prototype/voice-agent (smoke)" \
   bash -c "cd '$ROOT/prototype/voice-agent' && node scripts/smoke.mjs"

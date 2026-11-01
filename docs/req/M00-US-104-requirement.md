@@ -17,4 +17,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
-| 2026-11-01 | 實測結論回填 | 已完成（M02 relay client 層，runtime/relay/）：sendTask（冪等：同 request_id 只入庫/入隊一次）／pollTasks（SQS 長輪詢）／publishResult／pollResults／r… |
+| 2026-11-01 | 實測結論回填 | HTTP API 已落地並真實驗證（runtime/relay-api/）：POST /tasks → 202 + requestId（冪等）／GET /transcript → 200 + cursor 增量；認證喺 API Lambda… |

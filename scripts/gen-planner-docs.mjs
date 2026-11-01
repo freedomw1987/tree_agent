@@ -256,7 +256,7 @@ const items = [
     id: "M00-US-104",
     type: "US",
     module: "M02",
-    status: "進行中",
+    status: "等待校驗",
     title: "AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -272,7 +272,8 @@ const items = [
     dod: ["探針 `M00-US-104-relay-idempotent-and-persisted` 必通過"],
     biz: "transcript 存 DynamoDB（partition key = user_id；sort key = ts#request_id#role —— **必須包埋 role**，否則同一毫秒內 user/agent 兩條會撞 key、增量拉取會漏條）；每則訊息有 `request_id`（UUID）做冪等鍵；token 唔可以出現喺任何 log",
     dep: "SPIKE-001 結論、AWS（Lambda / DynamoDB / relay transport）、M00-US-103",
-    conclusion:
+    conclusion: "HTTP API 已落地並真實驗證（runtime/relay-api/）：POST /tasks → 202 + requestId（冪等）／GET /transcript → 200 + cursor 增量；認證喺 API Lambda 內用同一個 authorize() 純函式驗 token（無/錯 token → 401、有效 → 202）。**點解唔用 API Gateway REQUEST authorizer**：實測嗰條路徑喺 authorizer 之後、integration 之前回 500，而且 API Lambda 一次都唔會被 invoke（authorizer 有被 invoke、response 正確）→ 改為 Lambda 內驗證，100% 正常。已部署 dev stack `voice-agent-m02-api`（HTTP API + Lambda + IAM），部署腳本 scripts/deploy-api.sh（可重現）。",
+    _unusedConclusion:
       "已完成（M02 relay client 層，runtime/relay/）：sendTask（冪等：同 request_id 只入庫/入隊一次）／pollTasks（SQS 長輪詢）／publishResult／pollResults／readTranscript（cursor 增量）＋ 真實 AWS 接線（SQS + DynamoDB）。**真實端到端已通過**（App → tasks queue → Sidecar → results queue → App ＋ DynamoDB transcript，4.96 秒；AWS_E2E=1 opt-in 探針）。已部署 dev stack `voice-agent-m02-relay`（2 條 SQS ＋ 2 個 DynamoDB table，保留 ≥ 1 小時）。**未做**：HTTP API + Lambda authorizer（App 現時要直接用 AWS 憑證，正式版要收窄到 authorizer）、成本守衛",
     verify: "跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-104`",
     why: "P0：呢個係手機 → Mac 嘅唯一通道，亦係「冇消息遺失」嘅保證。",
@@ -552,6 +553,7 @@ const items = [
     id: "M00-US-141",
     type: "US",
     module: "M02",
+    status: "進行中",
     title: "成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard）",
     phase: "④ 通知 + 指標",
     priority: "P1",
@@ -565,6 +567,8 @@ const items = [
     dod: ["探針 `M00-US-141-task-budget-aborts` 必通過"],
     biz: "v1 唔使用常駐 Fargate（成本門檻 < $30/月）；單任務上限 15 分鐘 + token 預算（具體數值待 Spike 實測後定，見 OQ-2）",
     dep: "M00-US-104",
+    status: "進行中",
+    conclusion: "AWS 側成本守衛已落地（跟 API stack 一齊部署並驗證）：AWS Budgets 月度 $5 預算（80% 電郵告警 ＋ 100% SNS 告警）、SNS 成本告警 topic、CloudWatch 用量 dashboard（Lambda invocations/errors、SQS messages、DynamoDB consumed capacity）。**未做**：單任務預算上限嘅**代碼**（時間/token 上限 → 中止 → partial → 通知）同用量聚合 API。",
     verify: "跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-141`",
     why: "P1：「成本失控」係最大威脅之一，而且好平好快做，唔做就等於放任第一個 AWS 帳單爆。",
     quotes: [

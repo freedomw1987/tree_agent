@@ -1,0 +1,268 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Voice Agent M02 — HTTP API（App 唔使直接攞 AWS 憑證）＋ Lambda authorizer ＋ 成本守衛
+  依賴：voice-agent-m02-relay stack（2 條 SQS ＋ 2 個 DynamoDB table）
+
+Parameters:
+  TasksQueueUrl:
+    Type: String
+  ResultsQueueUrl:
+    Type: String
+  TranscriptTable:
+    Type: String
+  TaskTable:
+    Type: String
+  RelayToken:
+    Type: String
+    NoEcho: true
+    Description: 單用戶自製 token（正式版會換 Cognito）
+  RelayUserId:
+    Type: String
+    Default: default
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 5
+  AlertEmail:
+    Type: String
+    Description: 成本告警電郵（AWS Budgets 會寄確認信）
+  ArtifactBucket:
+    Type: String
+    Description: Lambda 程式碼 S3 bucket（aws cloudformation package 填）
+  AuthorizerKey:
+    Type: String
+    Description: authorizer zip key（package 填）
+  ApiKey:
+    Type: String
+    Description: api zip key（package 填）
+
+Resources:
+  # ── HTTP API + authorizer ───────────────────────────────────────────────
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-http"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: ["*"]
+        AllowHeaders: ["authorization", "content-type", "x-api-token"]
+        AllowMethods: ["GET", "POST", "OPTIONS"]
+
+  AuthorizerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  AuthorizerFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-authorizer"
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Timeout: 10
+      MemorySize: 256
+      Role: !GetAtt AuthorizerRole.Arn
+      Code: { S3Bucket: !Ref ArtifactBucket, S3Key: !Ref AuthorizerKey }
+      Environment:
+        Variables:
+          RELAY_TOKEN: !Ref RelayToken
+          RELAY_USER_ID: !Ref RelayUserId
+
+  AuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AuthorizerFn.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  Authorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref HttpApi
+      Name: relay-token
+      AuthorizerType: REQUEST
+      AuthorizerUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerFn.Arn}/invocations"
+      # ⚠️ HTTP API REQUEST authorizer：列多個 identity source 時，request 必須全部都有，
+      #    否則 API Gateway 喺 invoke 前就 401（實測踩過）→ 只用 Authorization
+      IdentitySource: ["$request.header.Authorization"]
+      AuthorizerResultTtlInSeconds: 300
+      # HTTP API REQUEST authorizer 必須指定 payload format（v1 會 400）
+      AuthorizerPayloadFormatVersion: "2.0"
+
+  # ── API Lambda ──────────────────────────────────────────────────────────
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: relay-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:voice-agent-m02-relay-tasks"
+                  - !Sub "arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:voice-agent-m02-relay-results"
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TranscriptTable}"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TaskTable}"
+
+  ApiFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-api"
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Timeout: 20
+      MemorySize: 512
+      Role: !GetAtt ApiRole.Arn
+      Code: { S3Bucket: !Ref ArtifactBucket, S3Key: !Ref ApiKey }
+      Environment:
+        Variables:
+          TASKS_QUEUE_URL: !Ref TasksQueueUrl
+          RESULTS_QUEUE_URL: !Ref ResultsQueueUrl
+          TRANSCRIPT_TABLE: !Ref TranscriptTable
+          TASK_TABLE: !Ref TaskTable
+          RELAY_USER_ID: !Ref RelayUserId
+          # 認證喺 Lambda 內做 → token 一定要喺度（之前漏咗 → 全部 401）
+          RELAY_TOKEN: !Ref RelayToken
+
+  ApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ApiFn.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  PostTasksRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /tasks
+      AuthorizationType: NONE
+      # 認證喺 API Lambda 內做（見 runtime/relay-api/README.md「點解唔用 REQUEST authorizer」）
+      Target: !Sub "integrations/${ApiIntegration}"
+
+  GetTranscriptRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /transcript
+      AuthorizationType: NONE
+      # 認證喺 API Lambda 內做（見 runtime/relay-api/README.md「點解唔用 REQUEST authorizer」）
+      Target: !Sub "integrations/${ApiIntegration}"
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFn.Arn}/invocations"
+      PayloadFormatVersion: "2.0"
+
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  # ── 成本守衛（US-141）──────────────────────────────────────────────────
+  CostTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AWS::StackName}-cost-alerts"
+      DisplayName: Voice Agent 成本告警
+
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub "${AWS::StackName}-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetUsd
+          Unit: USD
+        CostFilters:
+          Service:
+            - AmazonSQS
+            - AmazonDynamoDB
+            - AWSLambda
+            - Polly
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            ThresholdType: PERCENTAGE
+            Threshold: 100
+          Subscribers:
+            - SubscriptionType: SNS
+              Address: !Ref CostTopic
+
+  UsageDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${AWS::StackName}-usage"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {"type":"metric","x":0,"y":0,"width":12,"height":6,"properties":{
+              "title":"Lambda invocations","region":"${AWS::Region}",
+              "stat":"Sum","period":86400,"metrics":[["AWS/Lambda","Invocations","FunctionName","${AWS::StackName}-api"]]}},
+            {"type":"metric","x":12,"y":0,"width":12,"height":6,"properties":{
+              "title":"Lambda errors","region":"${AWS::Region}",
+              "stat":"Sum","period":86400,"metrics":[["AWS/Lambda","Errors","FunctionName","${AWS::StackName}-api"]]}},
+            {"type":"metric","x":0,"y":6,"width":12,"height":6,"properties":{
+              "title":"SQS messages sent","region":"${AWS::Region}",
+              "stat":"Sum","period":86400,"metrics":[["AWS/SQS","NumberOfMessagesSent","QueueName","voice-agent-m02-relay-tasks"]]}},
+            {"type":"metric","x":12,"y":6,"width":12,"height":6,"properties":{
+              "title":"DynamoDB consumed capacity","region":"${AWS::Region}",
+              "stat":"Sum","period":86400,"metrics":[["AWS/DynamoDB","ConsumedReadCapacityUnits","TableName","${TranscriptTable}"]]}}
+          ]
+        }
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  AuthorizerName:
+    Value: !Ref AuthorizerFn
+  ApiFunctionName:
+    Value: !Ref ApiFn
+  CostTopicArn:
+    Value: !Ref CostTopic
+  DashboardName:
+    Value: !Ref UsageDashboard
