@@ -35,7 +35,7 @@
 | SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | PENDING | — |
 | SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | PENDING | — |
 | M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 8 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
-| M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 5 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
+| M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 6 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | PENDING | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
@@ -160,8 +160,8 @@
 - **對應 Module**: M01（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
-- **AC**: 5 條 Given-When-Then + DoD → [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html)
-- **業務規則**: STT 一律 device native（音頻唔上傳）；語言 zh-HK；STT 文字必須經用戶確認（可編輯）先送出
+- **AC**: 8 條 Given-When-Then + DoD → [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html)
+- **業務規則**: STT 一律 device native（音頻唔上傳）；語言 zh-HK；輸入模式：左側 Voice/鍵盤轉換鈕，Voice 模式按住「按住 說話」（放開即完成錄音並傳送），鍵盤模式多行輸入 ＋ 右側「傳送」鈕；『語音送出前先編輯』設定預設關（開啟則轉成文字先編輯再送出）；STT 空結果唔可以送出
 - **依賴**: SPIKE-002 結論、Tauri mobile native plugin（TECH-401）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-102`
 - **為什麼這個優先**: P0：「唔使打字」係呢個產品嘅核心價值；呢個係第一個真正解決痛點嘅功能。

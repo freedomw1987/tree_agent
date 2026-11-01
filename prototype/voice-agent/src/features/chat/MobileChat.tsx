@@ -11,9 +11,11 @@ import {
   MessagesSquare,
   Plus,
   Sparkles,
+  Mic,
+  Send,
+  Keyboard as KeyboardIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +35,6 @@ import {
   NewMessageButton,
   SttDraft,
   TaskCard,
-  VoiceRecorder,
 } from "./parts";
 import { useStickyStream } from "./useStickyStream";
 
@@ -65,6 +66,7 @@ export default function MobileChat() {
   const cancelConfirm = useDemoStore((s) => s.cancelConfirm);
   const setRecording = useDemoStore((s) => s.setRecording);
   const setSttDraft = useDemoStore((s) => s.setSttDraft);
+  const setInputMode = useDemoStore((s) => s.setInputMode);
   const dismissNotify = useDemoStore((s) => s.dismissNotify);
   const failLastTask = useDemoStore((s) => s.failLastTask);
 
@@ -105,14 +107,35 @@ export default function MobileChat() {
     setUnclear(false);
   };
 
-  const stopRecording = () => {
+  /** 放開按鈕：完成錄音。send=true = 直接傳送（預設）；false = 取消 */
+  const stopRecording = (send: boolean) => {
     setRecording(false);
+    if (!send) return;
     if (demoMode === "edge") {
       setUnclear(true);
       return;
     }
-    setSttDraft("幫我寫封 email 俾客戶講明延遲兩日交付");
+    const transcript = "幫我寫封 email 俾客戶講明延遲兩日交付";
+    if (settings.editBeforeSend) {
+      // 設定咗「送出前先編輯」 → 出可編輯草稿
+      setSttDraft(transcript);
+      setUnclear(false);
+      return;
+    }
+    // 預設：放開即完成錄音並傳送
+    handleSend(transcript, true);
   };
+
+  // 錄音計時
+  const [recSec, setRecSec] = useState(0);
+  useEffect(() => {
+    if (!recording) {
+      setRecSec(0);
+      return;
+    }
+    const t = setInterval(() => setRecSec((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [recording]);
 
   const playVoice = () => {
     setPlaying(true);
@@ -262,30 +285,77 @@ export default function MobileChat() {
         </Button>
       </div>
 
-      {/* Input bar */}
+      {/* Input bar：左 = Voice/鍵盤轉換，中 = 按住說話／多行輸入，右 = 傳送 */}
       <div className="shrink-0 border-t border-border bg-card px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <Input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSend(text);
-            }}
-            placeholder="打字都得…"
-            className="h-11 flex-1 rounded-full bg-muted"
-          />
-          {text.trim() && (
-            <Button size="icon" onClick={() => handleSend(text)} aria-label="發送">
-              <MessageSquare className="size-4" />
-            </Button>
-          )}
-          {!text.trim() && (
-            <VoiceRecorder
-              recording={recording}
-              onStart={startRecording}
-              onStop={stopRecording}
+        <div className="flex items-end gap-2">
+          {/* 模式轉換 */}
+          <button
+            onClick={() => setInputMode(settings.inputMode === "voice" ? "keyboard" : "voice")}
+            disabled={agentStatus === "offline"}
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-foreground hover:bg-border disabled:opacity-50"
+            aria-label={settings.inputMode === "voice" ? "切換到鍵盤輸入" : "切換到語音輸入"}
+            title={settings.inputMode === "voice" ? "切換到鍵盤輸入" : "切換到語音輸入"}
+          >
+            {settings.inputMode === "voice" ? (
+              <KeyboardIcon className="size-5" />
+            ) : (
+              <Mic className="size-5" />
+            )}
+          </button>
+
+          {settings.inputMode === "voice" ? (
+            /* Voice 模式：按住講嘢，放開即完成錄音並傳送 */
+            <button
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture?.(e.pointerId);
+                startRecording();
+              }}
+              onPointerUp={() => stopRecording(true)}
+              onPointerCancel={() => stopRecording(false)}
+              onContextMenu={(e) => e.preventDefault()}
               disabled={agentStatus === "offline"}
-            />
+              className={`flex h-11 flex-1 touch-none select-none items-center justify-center gap-2 rounded-control text-sm font-medium transition-colors disabled:opacity-50 ${
+                recording
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-muted text-foreground active:bg-primary/15"
+              }`}
+            >
+              {recording ? (
+                <>
+                  <span className="size-2 animate-pulse rounded-full bg-destructive" />
+                  放開發送 · {String(Math.floor(recSec / 60)).padStart(2, "0")}:
+                  {String(recSec % 60).padStart(2, "0")}
+                </>
+              ) : (
+                <>
+                  <Mic className="size-4" /> 按住 說話
+                </>
+              )}
+            </button>
+          ) : (
+            /* 鍵盤模式：多行輸入 + 右邊傳送鈕 */
+            <>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSend(text);
+                }}
+                rows={1}
+                placeholder="輸入訊息…（⌘↩ 傳送）"
+                className="max-h-32 min-h-11 flex-1 resize-none rounded-control bg-muted px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                style={{ height: `${Math.min(128, 40 + (text.split("\n").length - 1) * 20)}px` }}
+              />
+              <Button
+                size="icon"
+                className="size-11 shrink-0 rounded-full"
+                onClick={() => handleSend(text)}
+                disabled={!text.trim()}
+                aria-label="傳送"
+              >
+                <Send className="size-4" />
+              </Button>
+            </>
           )}
         </div>
       </div>

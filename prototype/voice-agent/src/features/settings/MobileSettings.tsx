@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import type { ComponentType } from "react";
-import { MessageSquare, BarChart3, SlidersHorizontal, KeyRound, Mic, Volume2, Bell, Moon } from "lucide-react";
+import { MessageSquare, BarChart3, SlidersHorizontal, KeyRound, Mic, Volume2, Bell, Moon, PencilLine } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +82,13 @@ export default function MobileSettings() {
               hint="只推文字，唔播語音"
               checked={settings.quiet}
               onChange={(v) => updateSettings({ quiet: v })}
+            />
+            <Row
+              icon={PencilLine}
+              label="語音送出前先編輯"
+              hint="關（預設）＝ 放開「按住說話」即傳送；開 = 轉成文字先改再送出"
+              checked={settings.editBeforeSend}
+              onChange={(v) => updateSettings({ editBeforeSend: v })}
             />
           </div>
 

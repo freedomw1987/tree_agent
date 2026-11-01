@@ -161,6 +161,37 @@ try {
   const afterClick = await page.evaluate(() => document.body.innerText);
   check(!afterClick.includes("新訊息"), "撳「新訊息」後按鈕消失（已滾到最底）");
 
+  // 輸入模式：Voice（按住說話）↔ 鍵盤（多行 + 傳送鈕）
+  await page.goto(`${pathToFileURL(dist).href}#/m/chat`, { waitUntil: "networkidle0" });
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector("button");
+  const holdBtn = await page.evaluateHandle(() =>
+    [...document.querySelectorAll("button")].find((b) => b.textContent?.includes("按住 說話")) ?? null,
+  );
+  check(!!holdBtn.asElement(), "Voice 模式：底部有「按住 說話」按鈕");
+  const bb = await holdBtn.asElement().boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.mouse.down();
+  await new Promise((r) => setTimeout(r, 350));
+  const holdingText = await page.evaluate(() => document.body.innerText);
+  check(holdingText.includes("放開發送"), "按住時顯示「放開發送」+ 錄音計時");
+  await page.mouse.up();
+  await new Promise((r) => setTimeout(r, 500));
+  const sentText = await page.evaluate(() => document.body.innerText);
+  check(
+    sentText.includes("幫我寫封 email 俾客戶講明延遲兩日交付"),
+    "放開即完成錄音並傳送（唔使再撳傳送）",
+  );
+
+  // 切換到鍵盤模式
+  await page.click('button[aria-label="切換到鍵盤輸入"]');
+  await new Promise((r) => setTimeout(r, 300));
+  const kb = await page.evaluate(() => ({
+    hasSend: !!document.querySelector('button[aria-label="傳送"]'),
+    hasTextarea: !!document.querySelector("textarea[placeholder*='輸入訊息']"),
+  }));
+  check(kb.hasSend && kb.hasTextarea, "鍵盤模式：多行輸入框 ＋ 右邊「傳送」按鈕");
+
   // 五狀態切換器：行一次 happy → empty（先重載，確保 panel 狀態乾淨）
   await page.goto(pathToFileURL(dist).href, { waitUntil: "networkidle0" });
   await page.evaluate(() => window.localStorage.clear());

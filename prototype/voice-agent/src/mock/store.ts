@@ -94,6 +94,10 @@ export interface Settings {
   tts: boolean;
   quiet: boolean;
   push: boolean;
+  /** true = 語音轉文字後先編輯再送出（預設 false = 放開即傳送） */
+  editBeforeSend: boolean;
+  /** 輸入模式：voice（按住說話）／keyboard（多行輸入 + 傳送鈕） */
+  inputMode: "voice" | "keyboard";
 }
 
 interface DemoState {
@@ -119,6 +123,7 @@ interface DemoState {
   setStep: (s: number) => void;
   setRecording: (v: boolean) => void;
   setSttDraft: (v: string | null) => void;
+  setInputMode: (m: "voice" | "keyboard") => void;
   setWorkspace: (w: string) => void;
   updateSettings: (p: Partial<Settings>) => void;
   setAgentStatus: (s: AgentStatus) => void;
@@ -203,6 +208,8 @@ export const useDemoStore = create<DemoState>()(
       setStep: (step) => set({ step }),
       setRecording: (recording) => set({ recording }),
       setSttDraft: (sttDraft) => set({ sttDraft }),
+      setInputMode: (inputMode) =>
+        set((s) => ({ settings: { ...s.settings, inputMode } })),
       setWorkspace: (workspace) => set({ workspace }),
       updateSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
       setAgentStatus: (agentStatus) => set({ agentStatus }),

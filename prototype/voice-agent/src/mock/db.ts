@@ -118,4 +118,6 @@ export const initialSettings: Settings = {
   tts: true,
   quiet: false,
   push: true,
+  editBeforeSend: false,
+  inputMode: "voice",
 };

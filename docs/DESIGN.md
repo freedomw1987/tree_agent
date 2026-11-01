@@ -23,7 +23,7 @@
 
 ```
 mobile-app
-├── /m/chat          對話主畫面（訊息串 + 輸入列 + 錄音鍵 + 確認卡 + 任務卡片）
+├── /m/chat          對話主畫面（訊息串 + 輸入列〔Voice/鍵盤雙模式〕 + 確認卡 + 任務卡片）
 │   ├── 狀態：錄音中（waveform + 計時）
 │   ├── 狀態：STT 結果可編輯（送出事實）
 │   ├── 狀態：待確認（確認卡）
@@ -190,7 +190,9 @@ cli-terminal
 - **框**：390×844，圓角 40px，狀態欄（時間 / 訊號 / 電量）＋ home indicator
 - **Header**（56px）：左＝App 名 + `AgentStatusPill`；右＝設定 icon
 - **Content**：訊息串（單欄，由下往上），sticky 底部輸入列
-- **輸入列**：左＝文字輸入框（可摺疊成一行）；右＝錄音鍵（56px 圓形，`--primary`）；錄音中變紅 + waveform
+- **輸入列**：左 = **模式轉換鈕**（🎤 ⇄ ⌨️，圓形 44px）；中 = Voice 模式「**按住 說話**」通欄鈕（按住錄音，放開即完成並傳送）／鍵盤模式**多行輸入框**（1–6 行，高度隨內容長）；右 = 鍵盤模式「**傳送**」鈕（無內容時 disabled）
+- **錄音中**：按鈕轉紅 ＋「放開發送 · mm:ss」計時
+- **切換模式**：即時生效，唔影響已輸入內容
 - **浮層**：確認卡以 Sheet 由下滑入（`--shadow-pop`）；任務卡片直接插入訊息串
 - **底部導航**：只有「對話 / 統計 / 設定」三個 tab（圖標 + 文字）
 
@@ -229,7 +231,7 @@ cli-terminal
 
 | Module | Surface | Happy | Loading | Empty | Error | Edge |
 |---|---|---|---|---|---|---|
-| M01 client-app | mobile-app | 送出訊息→任務卡 | 錄音中 waveform / 訊息「傳送中」 | 未傾過偈（引導：按住講嘢）／session 抽屜零對話 | Agent 離線 / 網絡斷 | 錄音超 60 秒 / STT 空結果 / 超長訊息／拖咗上去睇歷史時出「新訊息」按鈕 |
+| M01 client-app | mobile-app | 送出訊息→任務卡 | 錄音中 waveform / 訊息「傳送中」 | 未傾過偈（引導：按住講嘢）／session 抽屜零對話 | Agent 離線 / 網絡斷 | 錄音超 60 秒 / STT 空結果 / 超長訊息／拖咗上去睇歷史時出「新訊息」按鈕／切換輸入模式 |
 | M01 client-app | desktop-mac | 寬版對話 | session 載入 skeleton | 未開 session | sidecar 崩潰提示 | 極長訊息 / 同時多 session |
 | M02 relay-backend | cli-terminal | 送達 log | pending 佇列 | 無送達紀錄 | token 失效 401 / relay 逾時 | request_id 重送（冪等） |
 | M03 mac-runtime | desktop-mac | Agent 就緒 + session 表 | sidecar 啟動中 | 未選 Workspace | sidecar 崩潰 + 自動重啟提示 | session 檔損毀 / workspace 路徑不存在 |
