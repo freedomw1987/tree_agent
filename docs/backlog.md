@@ -32,8 +32,8 @@
 | US ID | 類型 | Module | 標題 | AC | 優先級 | Story Point | 狀態 | 依賴 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | SPIKE-001 | Spike | M02 | AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-001.md) ｜ [html](ac/SPIKE-001.html) | P0 | 3 | 等待校驗 | — |
-| SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | PENDING | — |
-| SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | PENDING | — |
+| SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | 進行中（等真機/SDK） | — |
+| SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | 進行中（等憑證） | — |
 | M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 9 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
 | M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 6 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
@@ -99,7 +99,9 @@
 | OQ-4 | transcript 保留期 + 刪除 / 匯出機制？ | M00-US-104 | 資料私隱 + 成本 |
 | OQ-5 | Mac 睡眠 / 熄屏時要唔要保持 sidecar 醒著（caffeinate / launchd）？ | M00-US-103 | **批次 1 前必答**（runtime 生命週期，直接影響「離開屋企仲能不能用」） |
 | OQ-6 | iOS 語音通知音檔大小上限同降級策略？ | SPIKE-003 | 技術上限，Spike 會實測 |
-| OQ-7 | iOS 發佈路徑（TestFlight vs App Store）同簽名安排？ | SPIKE-003 | 批次 3 前要定（影響點裝落手機試） |
+| OQ-7 | iOS 發佈路徑（TestFlight vs App Store）同簽名安排？ | SPIKE-003 | 批次 3 前要定（影響點裝落手機試；需 Apple Developer 帳戶） |
+| OQ-10 | APNs auth key（.p8）＋ Firebase 專案（google-services.json / service account）可唔可以提供？ | M00-US-131 | **批次 3 前必答**（冇憑證就做唔到 iOS/Android 推播實測） |
+| OQ-11 | iOS simulator runtime（xcodebuild -downloadPlatform iOS）＋ Android SDK/真機，可唔可以裝？ | SPIKE-002 / TECH-401 | **批次 3 前必答**（冇呢啲就驗證唔到語音輸入同 mobile build） |
 | OQ-8 | Cognito 遷移嘅時機同邊界（多租戶資料模型）？ | M00-US-111 | v2 之前決定 |
 | OQ-9 | workspace 位置：預設 `~/agent-workspace` 定支援多個 workspace？ | M00-US-103 / M00-US-121 | 影響檔案工具範圍 |
 
@@ -129,6 +131,7 @@
 - **業務規則**: 語言預設 zh-HK（粵語）；STT 結果一定要可編輯，唔可以自動送出
 - **依賴**: iOS + Android 真機、Tauri 2 mobile 工具鏈
 - **驗收方式**: 真機測試數據 + 可運行嘅 plugin 骨架
+- **實測結論**: iOS 部分實測完成：粵語 STT 可用（SFSpeechRecognizer locale `zh-HK` → available；`yue-Hant-HK` 唔支援）；Tauri 2 iOS 工具鏈行得通（tauri ios init 生成 Xcode project ＋ cargo build --target aarch64-apple-ios-sim 1m39s 成功）。未裝 iOS simulator runtime（要 xcodebuild -downloadPlatform iOS）、真機要簽名、Android 完全 blocked（本機無 SDK 無真機）→ 粵語 WER/準確率未驗證。詳見 docs/spike/mobile-stt.md
 - **為什麼這個優先**: P0：語音係呢個產品嘅入口，平台粵語支援度直接決定 US-102 技術路線，亦可能推翻「device native 唔使上傳音頻」嘅私隱前提。
 - **需求錨點**: [req/SPIKE-002-requirement.md](req/SPIKE-002-requirement.md)
 
@@ -141,6 +144,7 @@
 - **業務規則**: 推播 payload 只准包含任務摘要，唔准塞完整 transcript
 - **依賴**: Apple Developer / Firebase 帳號、AWS Polly
 - **驗收方式**: 真機收到 push + 鎖屏語音播放錄屏
+- **實測結論**: Polly 部分完成實測：粵語 voice `Hiujin` 存在（必須 --engine neural）；延遲 ~1.0s 基線 + ~12ms/字（168 字 = 2.1s / 212KB mp3、109KB opus）；mp3 唔可以內嵌 push payload（4KB 上限）→ 一律經 S3 URL；iOS 通知附件 ≤ 30 秒 → 通知只播 ≤ 30 字短摘要。APNs/FCM 未能實測（需用戶提供 Apple Developer 帳戶 + Firebase 專案）。詳見 docs/spike/push-and-tts.md
 - **為什麼這個優先**: P0：「雙手唔得閒」靠嘅就係完成時你唔使望住 App；iOS 附件大小限制係隱性風險，唔驗證會喺最後一刻爆。
 - **需求錨點**: [req/SPIKE-003-requirement.md](req/SPIKE-003-requirement.md)
 
@@ -198,7 +202,7 @@
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html)
-- **業務規則**: TTS 一律用 AWS Polly；音檔 cache 24 小時；回覆 > 800 字只播前段並提示「全文睇螢幕」
+- **業務規則**: TTS 一律用 AWS Polly voice `Hiujin`（yue-CN，**engine 必須 neural**）；格式 mp3（通知附件唔用 opus，iOS 支援唔穩）；App 內播報只讀前 150 字；通知版 ≤ 30 字摘要；mp3 存 S3 ＋ URL 交付；cache 24 小時；長回覆（> 800 字）只播前段並提示「全文睇螢幕」
 - **依賴**: AWS Polly、M00-US-131（push 通知）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-105`
 - **為什麼這個優先**: P1：語音回覆明顯提升「唔使望住屏幕」嘅體驗，但唔阻塞核心任務流。
@@ -282,7 +286,7 @@
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html)
-- **業務規則**: 推播 payload 只准包含任務摘要（唔准塞完整 transcript）；mp3 存 S3 + URL 拉取；憑證唔落 repo
+- **業務規則**: 推播 payload 只准包含任務摘要（唔准塞完整 transcript）；音頻經 URL（唔內嵌，APNs payload 4KB 上限）；iOS 附件音頻 ≤ 30 秒（用 ≤ 30 字摘要）；憑證唔落 repo（放 AWS Secrets Manager）
 - **依賴**: SPIKE-003、AWS（S3 / Lambda）、APNs / FCM
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-131`
 - **為什麼這個優先**: P0：「雙手唔得閒」靠嘅就係完成通知 —— 你唔會一直望住 App，冇 push 成個體驗就斷。

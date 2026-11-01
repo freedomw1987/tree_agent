@@ -42,7 +42,7 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>探針 `M00-US-105-tts-failure-fallback-to-text` 必通過</li>
 </ul>
 <h2>業務規則</h2>
-<div class="rules">TTS 一律用 AWS Polly；音檔 cache 24 小時；回覆 &gt; 800 字只播前段並提示「全文睇螢幕」</div>
+<div class="rules">TTS 一律用 AWS Polly voice `Hiujin`（yue-CN，**engine 必須 neural**）；格式 mp3（通知附件唔用 opus，iOS 支援唔穩）；App 內播報只讀前 150 字；通知版 ≤ 30 字摘要；mp3 存 S3 ＋ URL 交付；cache 24 小時；長回覆（&gt; 800 字）只播前段並提示「全文睇螢幕」</div>
 <h2>依賴</h2>
 <div class="rules">AWS Polly、M00-US-131（push 通知）</div>
 <footer>

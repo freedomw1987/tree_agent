@@ -17,3 +17,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
+| 2026-11-01 | 實測結論回填 | iOS 部分實測完成：粵語 STT 可用（SFSpeechRecognizer locale `zh-HK` → available；`yue-Hant-HK` 唔支援）；Tauri 2 iOS 工具鏈行得通（tauri ios init … |

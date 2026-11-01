@@ -42,7 +42,7 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>探針 `M00-US-131-push-fallback-to-text` 必通過</li>
 </ul>
 <h2>業務規則</h2>
-<div class="rules">推播 payload 只准包含任務摘要（唔准塞完整 transcript）；mp3 存 S3 + URL 拉取；憑證唔落 repo</div>
+<div class="rules">推播 payload 只准包含任務摘要（唔准塞完整 transcript）；音頻經 URL（唔內嵌，APNs payload 4KB 上限）；iOS 附件音頻 ≤ 30 秒（用 ≤ 30 字摘要）；憑證唔落 repo（放 AWS Secrets Manager）</div>
 <h2>依賴</h2>
 <div class="rules">SPIKE-003、AWS（S3 / Lambda）、APNs / FCM</div>
 <footer>

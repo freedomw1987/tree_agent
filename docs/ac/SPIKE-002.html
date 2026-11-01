@@ -40,6 +40,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>產出 `docs/spike/mobile-stt.md`（含數據 + plugin 骨架 code）</li>
   <li>結論決定 US-102 係 native 定需要雲端 fallback</li>
 </ul>
+<h2>實測結論</h2>
+<div class="rules">iOS 部分實測完成：粵語 STT 可用（SFSpeechRecognizer locale `zh-HK` → available；`yue-Hant-HK` 唔支援）；Tauri 2 iOS 工具鏈行得通（tauri ios init 生成 Xcode project ＋ cargo build --target aarch64-apple-ios-sim 1m39s 成功）。未裝 iOS simulator runtime（要 xcodebuild -downloadPlatform iOS）、真機要簽名、Android 完全 blocked（本機無 SDK 無真機）→ 粵語 WER/準確率未驗證。詳見 docs/spike/mobile-stt.md</div>
 <h2>業務規則</h2>
 <div class="rules">語言預設 zh-HK（粵語）；STT 結果一定要可編輯，唔可以自動送出</div>
 <h2>依賴</h2>

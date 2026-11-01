@@ -15,6 +15,10 @@
 - [ ] 產出 `docs/spike/mobile-push.md`
 - [ ] 確認 signing / 憑證管理流程（憑證唔可以入 repo）
 
+## 實測結論
+
+Polly 部分完成實測：粵語 voice `Hiujin` 存在（必須 --engine neural）；延遲 ~1.0s 基線 + ~12ms/字（168 字 = 2.1s / 212KB mp3、109KB opus）；mp3 唔可以內嵌 push payload（4KB 上限）→ 一律經 S3 URL；iOS 通知附件 ≤ 30 秒 → 通知只播 ≤ 30 字短摘要。APNs/FCM 未能實測（需用戶提供 Apple Developer 帳戶 + Firebase 專案）。詳見 docs/spike/push-and-tts.md
+
 ## 業務規則
 
 推播 payload 只准包含任務摘要，唔准塞完整 transcript

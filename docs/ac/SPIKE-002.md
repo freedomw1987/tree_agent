@@ -14,6 +14,10 @@
 - [ ] 產出 `docs/spike/mobile-stt.md`（含數據 + plugin 骨架 code）
 - [ ] 結論決定 US-102 係 native 定需要雲端 fallback
 
+## 實測結論
+
+iOS 部分實測完成：粵語 STT 可用（SFSpeechRecognizer locale `zh-HK` → available；`yue-Hant-HK` 唔支援）；Tauri 2 iOS 工具鏈行得通（tauri ios init 生成 Xcode project ＋ cargo build --target aarch64-apple-ios-sim 1m39s 成功）。未裝 iOS simulator runtime（要 xcodebuild -downloadPlatform iOS）、真機要簽名、Android 完全 blocked（本機無 SDK 無真機）→ 粵語 WER/準確率未驗證。詳見 docs/spike/mobile-stt.md
+
 ## 業務規則
 
 語言預設 zh-HK（粵語）；STT 結果一定要可編輯，唔可以自動送出
