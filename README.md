@@ -16,8 +16,9 @@ docs/
   prd/01-05-*.md        5 份模組 PRD（FR ＋ 追溯矩陣）
   spike/                3 份 spike 實測報告
 prototype/voice-agent/  系統 demo 原型（3 Surface ＋ 9 步 demo 路線 ＋ 五狀態切換器）
+apps/tauri-mac/      M03 macOS App（Tauri 2）：Rust supervisor ＋ commands ＋ 對話介面
 runtime/
-  sidecar/           M03 Mac sidecar（Pi SDK host）：session host ＋ IPC ＋ 崩潰重啟
+  sidecar/           M03 Mac sidecar（Pi SDK host）：session host ＋ IPC ＋ 崩潰重啟 ＋ 預算上限
   relay/             M02 relay client：冪等 ＋ transcript cursor ＋ SQS/DynamoDB 接線
   relay-api/         M02 HTTP API ＋ 成本守衛（部署：bash scripts/deploy-api.sh）
 spikes/relay-transport/ SPIKE-001 實測程式（contract 測試 ＋ adapter ＋ 量度 CLI）
@@ -32,8 +33,12 @@ open prototype/voice-agent/dist/index.html
 # 或者行互動版
 cd prototype/voice-agent && npm i && npm run dev
 
-# 本機閘點跑（lint + 回歸）
+# 本機閘點跑（lint + 回歸，11 步）
 bash scripts/check-all.sh
+
+# 行 macOS App（會自動拉起 sidecar）
+cd runtime/sidecar && npm run build          # 打包 sidecar → dist/main.mjs
+cd ../../apps/tauri-mac && npx tauri dev     # 或 npx tauri build 出 .app
 
 # SPIKE-001 量度（要 AWS 憑證）
 cd spikes/relay-transport && npm i && npm test
@@ -57,6 +62,6 @@ cd spikes/relay-transport && npm i && npm test
 - **規劃 ✅** 19 項目 / 100 SP / 5 個 Module / 6 批次
 - **設計 ✅** 三層文件 + demo 原型（機械驗收 37 項全過）
 - **執行 · 批次 0（3 個 Spike）** — SPIKE-001 ✅ 定案 **SQS long-poll**（p50 227ms / idle $0）；SPIKE-002 iOS ✅ / Android ⛔；SPIKE-003 Polly ✅ / APNs-FCM ⛔
-- **執行 · 批次 1 = M03 mac-runtime** — Node sidecar ✅（session host ＋ IPC ＋ 崩潰重啟 ＋ 真 Pi SDK 接線）；未做：Tauri macOS 殼、Workspace UI、Relay 接線
+- **執行 · 批次 1 = M03 mac-runtime** — ✅ 完成：Node sidecar（session host／自動分流／IPC／崩潰重啟／預算上限／真 Pi SDK）＋ **macOS Tauri 2 殼**（`apps/tauri-mac/`，.app 打包成功 ＋ 實機啟動拉起 sidecar 驗證）；未做：Workspace 選擇 UI、session 切換 UI、Relay(SQS) 接線
 - **執行 · 批次 2 = M02 relay-backend** — ✅ 完成：relay client（冪等 ＋ transcript cursor ＋ SQS/DynamoDB）＋ HTTP API ＋ 認證 ＋ 成本守衛（AWS Budget \$5 + 用量 dashboard）＋ 單任務預算上限代碼（超時/token → abort → partial）
 - **下一步**：批次 3 = M01 client-app（⚠️ 需要 iOS simulator runtime ＋ Android SDK ＋ 憑證：OQ-10/OQ-11）
