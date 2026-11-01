@@ -11,6 +11,11 @@ export interface ToolSpec<P = Record<string, unknown>> {
   riskLevel: RiskLevel;
   /** JSON schema（俾 Pi SDK 用） */
   parameters: Record<string, unknown>;
+  /**
+   * 確認之前嘅預檢（例如危險命令黑名單）
+   * 回 { ok: false } 就唔會出確認卡，直接拒絕
+   */
+  preflight?: (args: P) => { ok: true } | { ok: false; text: string };
   /** 真正執行 */
   run(args: P): Promise<ToolResult> | ToolResult;
   /** 俾用戶睇嘅預覽（confirm 卡用；預設用 args 摘要） */

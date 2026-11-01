@@ -10,9 +10,7 @@ import { parseRequest, serializeMessage } from "./protocol";
 import { SessionHost } from "./session-host";
 import { createPiFactory } from "./pi-factory";
 import { defaultBudgetFromEnv } from "./budget-guard";
-import { AuditLog } from "./tools/audit-log";
-import { ConfirmStore } from "./tools/confirm";
-import { ToolRegistry } from "./tools/registry";
+import { createToolRuntime } from "./tools/runtime";
 
 function arg(name: string, fallback: string): string {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -20,17 +18,32 @@ function arg(name: string, fallback: string): string {
 }
 
 const workspace = arg("workspace", process.env.VOICE_AGENT_WORKSPACE ?? process.cwd());
+
+// M04 + M05 工具 runtime（registry ＋ 確認 ＋ audit log）
+// 確認卡要經 IPC 送去做前端，所以喺呢度掛 onConfirmRequest
+const tools = createToolRuntime({
+  workspace,
+  onConfirmRequest: (r) => {
+    process.stdout.write(
+      `${serializeMessage({
+        type: "confirm_request",
+        id: r.id,
+        toolName: r.toolName,
+        toolLabel: r.toolLabel,
+        riskLevel: r.riskLevel,
+        preview: r.preview,
+        expiresAt: r.expiresAt,
+      })}\n`,
+    );
+  },
+});
+
 const host = new SessionHost({
   workspace,
-  factory: createPiFactory(),
+  factory: createPiFactory({ toolRuntime: tools }),
   // 單任務預算（US-141）：超時／超 token → abort → partial → 通知
   budget: defaultBudgetFromEnv(),
 });
-
-// M04 工具治理層（風險閘 ＋ 確認 ＋ audit log）
-const registry = new ToolRegistry();
-const confirms = new ConfirmStore();
-const audit = new AuditLog();
 
 host.onMessage((m) => {
   process.stdout.write(`${serializeMessage(m)}\n`);
@@ -78,7 +91,7 @@ rl.on("line", async (line) => {
           type: "log",
           id: req.id,
           event: "tools",
-          data: registry.list().map((t) => ({
+          data: tools.registry.list().map((t) => ({
             name: t.name,
             label: t.label,
             riskLevel: t.riskLevel,
@@ -93,7 +106,7 @@ rl.on("line", async (line) => {
           type: "log",
           id: req.id,
           event: "audit",
-          data: audit.list(100),
+          data: tools.audit.list(100),
         })}\n`,
       );
       break;
@@ -102,7 +115,10 @@ rl.on("line", async (line) => {
       // 前端回覆確認卡（撳「確認」／語音講「confirm」都會走到呢度）
       const confirmId = req.confirmId ?? req.id;
       if (!confirmId) break;
-      const ok = req.approved === true ? confirms.approve(confirmId) : confirms.cancel(confirmId);
+      const ok =
+        req.approved === true
+          ? tools.confirms.approve(confirmId)
+          : tools.confirms.cancel(confirmId);
       if (!ok) {
         process.stdout.write(
           `${serializeMessage({ type: "error", id: req.id, message: "搵唔到嗰張確認卡（可能已過期）" })}\n`,

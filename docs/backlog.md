@@ -43,8 +43,8 @@
 | M00-US-111 | US | M02-M04 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | 等待校驗 | M00-US-103 |
 | M00-US-112 | US | M05 | 外部服務工具接入（首個 target 待定：GitHub / Gmail / Notion） | 4 條 BDD + DoD ｜ [md](ac/M00-US-112.md) ｜ [html](ac/M00-US-112.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113 |
 | M00-US-113 | US | M01-M04 | 高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期） | 4 條 BDD + DoD ｜ [md](ac/M00-US-113.md) ｜ [html](ac/M00-US-113.html) | P0 | 5 | 等待校驗 | M00-US-111, M00-US-102 |
-| M00-US-121 | US | M05 | Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace） | 4 條 BDD + DoD ｜ [md](ac/M00-US-121.md) ｜ [html](ac/M00-US-121.html) | P1 | 5 | PENDING | M00-US-111, M00-US-113, M00-US-103 |
-| M00-US-122 | US | M05 | Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷） | 4 條 BDD + DoD ｜ [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113, M00-US-121 |
+| M00-US-121 | US | M05 | Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace） | 4 條 BDD + DoD ｜ [md](ac/M00-US-121.md) ｜ [html](ac/M00-US-121.html) | P1 | 5 | 等待校驗 | M00-US-111, M00-US-113, M00-US-103 |
+| M00-US-122 | US | M05 | Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷） | 4 條 BDD + DoD ｜ [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html) | P1 | 8 | 等待校驗 | M00-US-111, M00-US-113, M00-US-121 |
 | M00-US-131 | US | M01-M02 | 完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽） | 4 條 BDD + DoD ｜ [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html) | P0 | 5 | PENDING | SPIKE-003, M00-US-104, M00-US-105 |
 | M00-US-132 | US | M01-M02 | 每日任務數統計 + 每日摘要（核心成功指標） | 3 條 BDD + DoD ｜ [md](ac/M00-US-132.md) ｜ [html](ac/M00-US-132.html) | P1 | 3 | PENDING | M00-US-106, M00-US-104 |
 | M00-US-141 | US | M02 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | 等待校驗 | M00-US-104 |
@@ -269,6 +269,7 @@
 - **業務規則**: 所有路徑限制喺 workspace 根目錄內；寫入必須確認；大檔（> 1MB）截斷回傳
 - **依賴**: M00-US-111、M00-US-113、M00-US-103
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-121`
+- **實測結論**: 已完成並端到端驗證：fs_read / fs_list / fs_search（read_only，自動執行）／ fs_write（write，先出確認卡顯示 diff 預覽）。路徑全部經 resolveInWorkspace() 守衛，`../../etc/passwd` 呢類越界會被拒（探針驗證）。fs_write 預覽用 LCS 行級 diff（新檔／改檔都出 unified 格式）。**端到端實測**（scripts/e2e-tool-flow.mjs，真 Pi SDK）：Agent 調用 fs_write → 確認卡經 IPC 出 → 批核 → 檔案真係寫入 → audit 記 ok；再派 fs_read → 自動執行、冇確認卡 → audit 記 ok。探針 13 條（M05-tool-*）
 - **為什麼這個優先**: P1：「三樣都要」入面嘅第三類能力；風險較 terminal 低，所以排喺 terminal 之前做。
 - **需求錨點**: [req/M00-US-121-requirement.md](req/M00-US-121-requirement.md)
 
@@ -281,6 +282,7 @@
 - **業務規則**: 危險命令黑名單（rm -rf / sudo / curl|sh / mkfs / dd / shutdown 等）；超時 60 秒；輸出截斷 200 行；所有命令寫 audit log
 - **依賴**: M00-US-111、M00-US-113、M00-US-121
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-122`
+- **實測結論**: 已完成：terminal 工具（external_effect → 一定先問用戶）。危險命令閘有兩層 —— ①**預檢黑名單**（19 條 regex：rm -rf /、sudo、shutdown、mkfs、dd of=/dev/、curl|sh、fork bomb、find -delete、git push --force…）命中就**唔會出確認卡**，直接拒絕；②確認卡顯示完整命令。另有 60 秒超時（可調，上限 120 秒，超時 kill）＋ 輸出截斷（4000 字：頭 75% ＋ 尾 20% ＋ 省略字數）。**探試捉到真漏洞**：原本 regex 漏咗 `rm -rf /`（已修），並加咗反向探針確保 `rm -rf ./build` 唔會被過度攔截。探針 13 條（M05-tool-*）
 - **為什麼這個優先**: P1：terminal 係風險最高嘅工具，必須排喺風險閘（US-111/113）之後，唔可以先做。
 - **需求錨點**: [req/M00-US-122-requirement.md](req/M00-US-122-requirement.md)
 

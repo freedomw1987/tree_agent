@@ -36,6 +36,9 @@ cd prototype/voice-agent && npm i && npm run dev
 # 本機閘點跑（lint + 回歸，11 步）
 bash scripts/check-all.sh
 
+# 端到端驗證（真 Pi SDK：Agent → 工具 → 確認卡 → 批核 → 執行）
+cd runtime/sidecar && npm run build && node scripts/e2e-tool-flow.mjs
+
 # 行 macOS App（會自動拉起 sidecar）
 cd runtime/sidecar && npm run build          # 打包 sidecar → dist/main.mjs
 cd ../../apps/tauri-mac && npx tauri dev     # 或 npx tauri build 出 .app
@@ -62,6 +65,7 @@ cd spikes/relay-transport && npm i && npm test
 - **規劃 ✅** 19 項目 / 100 SP / 5 個 Module / 6 批次
 - **設計 ✅** 三層文件 + demo 原型（機械驗收 37 項全過）
 - **執行 · 批次 0（3 個 Spike）** — SPIKE-001 ✅ 定案 **SQS long-poll**（p50 227ms / idle $0）；SPIKE-002 iOS ✅ / Android ⛔；SPIKE-003 Polly ✅ / APNs-FCM ⛔
+- **執行 · 批次 5 = M05 tool-catalog** — ✅ 檔案工具（read/list/search/write ＋ 路徑鎖死）＋ terminal 工具（19 條危險命令黑名單 ＋ 60 秒超時 ＋ 輸出截斷）；**端到端實測通過**（真 Pi SDK → 工具 → 確認卡 → 批核 → 真寫入檔案）
 - **執行 · 批次 1 = M03 mac-runtime** — ✅ 完成：Node sidecar（session host／自動分流／IPC／崩潰重啟／預算上限／真 Pi SDK）＋ **macOS Tauri 2 殼**（`apps/tauri-mac/`，.app 打包成功 ＋ 實機啟動拉起 sidecar 驗證）；未做：Workspace 選擇 UI、session 切換 UI、Relay(SQS) 接線
 - **執行 · 批次 2 = M02 relay-backend** — ✅ 完成：relay client（冪等 ＋ transcript cursor ＋ SQS/DynamoDB）＋ HTTP API ＋ 認證 ＋ 成本守衛（AWS Budget \$5 + 用量 dashboard）＋ 單任務預算上限代碼（超時/token → abort → partial）
 - **下一步**：批次 3 = M01 client-app（⚠️ 需要 iOS simulator runtime ＋ Android SDK ＋ 憑證：OQ-10/OQ-11）

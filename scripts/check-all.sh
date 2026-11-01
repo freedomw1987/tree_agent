@@ -62,6 +62,14 @@ run_step "probe: prototype/voice-agent (smoke)" \
   bash -c "cd '$ROOT/prototype/voice-agent' && node scripts/smoke.mjs"
 
 # 4. 文件自查（AC / 錨點 / 連結）
+# 2f. 端到端（真 Pi SDK ＋ 真工具 ＋ 真確認流程）—— 需要網絡同模型額度，預設跳過
+if [ "${RUN_E2E:-0}" = "1" ]; then
+  run_step "probe: sidecar 端到端（Agent → 工具 → 確認卡 → 執行）" \
+    bash -c "cd '$ROOT/runtime/sidecar' && npm run build --silent && node scripts/e2e-tool-flow.mjs"
+else
+  echo "⏭️  略過：sidecar 端到端（RUN_E2E=1 先跑）"
+fi
+
 run_step "probe: docs self-check" \
   bash -c "cd '$ROOT' && node scripts/selfcheck-docs.mjs"
 

@@ -42,6 +42,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>探針 `M00-US-121-write-requires-confirm` 必通過</li>
   <li>探針 `M00-US-121-path-escape-blocked` 必通過</li>
 </ul>
+<h2>實測結論</h2>
+<div class="rules">已完成並端到端驗證：fs_read / fs_list / fs_search（read_only，自動執行）／ fs_write（write，先出確認卡顯示 diff 預覽）。路徑全部經 resolveInWorkspace() 守衛，`../../etc/passwd` 呢類越界會被拒（探針驗證）。fs_write 預覽用 LCS 行級 diff（新檔／改檔都出 unified 格式）。**端到端實測**（scripts/e2e-tool-flow.mjs，真 Pi SDK）：Agent 調用 fs_write → 確認卡經 IPC 出 → 批核 → 檔案真係寫入 → audit 記 ok；再派 fs_read → 自動執行、冇確認卡 → audit 記 ok。探針 13 條（M05-tool-*）</div>
 <h2>業務規則</h2>
 <div class="rules">所有路徑限制喺 workspace 根目錄內；寫入必須確認；大檔（&gt; 1MB）截斷回傳</div>
 <h2>依賴</h2>

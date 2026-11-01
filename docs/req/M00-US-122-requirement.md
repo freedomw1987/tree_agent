@@ -17,3 +17,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
+| 2026-11-01 | 實測結論回填 | 已完成：terminal 工具（external_effect → 一定先問用戶）。危險命令閘有兩層 —— ①**預檢黑名單**（19 條 regex：rm -rf /、sudo、shutdown、mkfs、dd of=/dev/、curl… |

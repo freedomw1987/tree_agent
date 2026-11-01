@@ -17,3 +17,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
+| 2026-11-01 | 實測結論回填 | 已完成並端到端驗證：fs_read / fs_list / fs_search（read_only，自動執行）／ fs_write（write，先出確認卡顯示 diff 預覽）。路徑全部經 resolveInWorkspace() 守衛，`… |

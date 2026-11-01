@@ -445,6 +445,9 @@ const items = [
     id: "M00-US-121",
     type: "US",
     module: "M05",
+    status: "等待校驗",
+    conclusion:
+      "已完成並端到端驗證：fs_read / fs_list / fs_search（read_only，自動執行）／ fs_write（write，先出確認卡顯示 diff 預覽）。路徑全部經 resolveInWorkspace() 守衛，`../../etc/passwd` 呢類越界會被拒（探針驗證）。fs_write 預覽用 LCS 行級 diff（新檔／改檔都出 unified 格式）。**端到端實測**（scripts/e2e-tool-flow.mjs，真 Pi SDK）：Agent 調用 fs_write → 確認卡經 IPC 出 → 批核 → 檔案真係寫入 → audit 記 ok；再派 fs_read → 自動執行、冇確認卡 → audit 記 ok。探針 13 條（M05-tool-*）",
     title: "Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace）",
     phase: "③ 檔案 + terminal",
     priority: "P1",
@@ -474,6 +477,9 @@ const items = [
     id: "M00-US-122",
     type: "US",
     module: "M05",
+    status: "等待校驗",
+    conclusion:
+      "已完成：terminal 工具（external_effect → 一定先問用戶）。危險命令閘有兩層 —— ①**預檢黑名單**（19 條 regex：rm -rf /、sudo、shutdown、mkfs、dd of=/dev/、curl|sh、fork bomb、find -delete、git push --force…）命中就**唔會出確認卡**，直接拒絕；②確認卡顯示完整命令。另有 60 秒超時（可調，上限 120 秒，超時 kill）＋ 輸出截斷（4000 字：頭 75% ＋ 尾 20% ＋ 省略字數）。**探試捉到真漏洞**：原本 regex 漏咗 `rm -rf /`（已修），並加咗反向探針確保 `rm -rf ./build` 唔會被過度攔截。探針 13 條（M05-tool-*）",
     title: "Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷）",
     phase: "③ 檔案 + terminal",
     priority: "P1",

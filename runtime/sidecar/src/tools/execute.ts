@@ -62,6 +62,15 @@ export async function executeTool(
     }
   }
 
+  // 預檢（例如危險命令黑名單）—— 唔過就唔會出確認卡
+  if (tool.preflight) {
+    const pre = tool.preflight(args);
+    if (!pre.ok) {
+      audit.log({ tool: toolName, riskLevel: tool.riskLevel, args, outcome: "blocked", result: pre.text });
+      return { ok: false, text: pre.text };
+    }
+  }
+
   // write / external_effect → 要確認
   const id = deps.newConfirmId ? deps.newConfirmId() : `cf-${Date.now().toString(36)}`;
   const preview = tool.preview ? tool.preview(args) : summarise(args);
