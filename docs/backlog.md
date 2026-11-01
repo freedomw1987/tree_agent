@@ -34,7 +34,7 @@
 | SPIKE-001 | Spike | M02 | AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-001.md) ｜ [html](ac/SPIKE-001.html) | P0 | 3 | PENDING | — |
 | SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | PENDING | — |
 | SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | PENDING | — |
-| M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 6 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
+| M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 8 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
 | M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 5 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 6 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | PENDING | SPIKE-001, M00-US-101, M00-US-103 |
@@ -148,8 +148,8 @@
 - **對應 Module**: M01（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
-- **AC**: 6 條 Given-When-Then + DoD → [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html)
-- **業務規則**: App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中；對話 session 由 Agent 自動分流，App 只提供入口（session 抽屜 ＋ 開新對話）
+- **AC**: 8 條 Given-When-Then + DoD → [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html)
+- **業務規則**: App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中；對話 session 由 Agent 自動分流，App 只提供入口（session 抽屜 ＋ 開新對話）；黏底規則：在底部 → 新訊息到達自動滾到底；唔喺底部 → 唔搶位置，出「新訊息」按鈕，撳咗先滾落去（距底 ≤ 80px 當作「喺底部」）
 - **依賴**: Tauri 2、Rust core、AWS relay API（US-104）、M00-US-103（session 策略）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-101`
 - **為什麼這個優先**: P0：呢個係用戶唯一接觸面；冇佢，之後所有能力都驗收唔到。

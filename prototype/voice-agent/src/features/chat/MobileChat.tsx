@@ -30,10 +30,12 @@ import {
   AgentStatusPill,
   ConfirmCard,
   MessageBubble,
+  NewMessageButton,
   SttDraft,
   TaskCard,
   VoiceRecorder,
 } from "./parts";
+import { useStickyStream } from "./useStickyStream";
 
 type StreamItem =
   | { kind: "msg"; ts: string; m: Message }
@@ -78,6 +80,8 @@ export default function MobileChat() {
     return items.sort((a, b) => a.ts.localeCompare(b.ts));
   }, [messages, tasks]);
 
+  const sticky = useStickyStream(stream.length);
+
   useEffect(() => {
     if (!notify) return;
     const t = setTimeout(() => dismissNotify(), 6000);
@@ -93,6 +97,7 @@ export default function MobileChat() {
     setText("");
     setSttDraft(null);
     setUnclear(false);
+    sticky.scrollToBottom();
   };
 
   const startRecording = () => {
@@ -159,7 +164,13 @@ export default function MobileChat() {
       </div>
 
       {/* Stream */}
-      <div className="min-h-0 flex-1 space-y-3 overflow-auto px-3 py-3">
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={sticky.ref}
+          onScroll={sticky.onScroll}
+          data-stream="mobile"
+          className="h-full space-y-3 overflow-auto px-3 py-3"
+        >
         {demoMode === "loading" ? (
           <div className="space-y-3">
             <Skeleton className="h-12 w-2/3" />
@@ -210,6 +221,10 @@ export default function MobileChat() {
               </div>
             );
           })
+        )}
+        </div>
+        {sticky.pending > 0 && (
+          <NewMessageButton count={sticky.pending} onClick={() => sticky.scrollToBottom()} />
         )}
       </div>
 

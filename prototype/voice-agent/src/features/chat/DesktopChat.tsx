@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useDemoStore } from "@/mock/store";
-import { AgentStatusPill, ConfirmCard, MessageBubble, TaskCard } from "./parts";
+import { AgentStatusPill, ConfirmCard, MessageBubble, NewMessageButton, TaskCard } from "./parts";
+import { useStickyStream } from "./useStickyStream";
 
 export default function DesktopChat() {
   const messages = useDemoStore((s) => s.messages);
@@ -20,6 +21,7 @@ export default function DesktopChat() {
   const approveConfirm = useDemoStore((s) => s.approveConfirm);
   const cancelConfirm = useDemoStore((s) => s.cancelConfirm);
   const [text, setText] = useState("");
+  const sticky = useStickyStream(messages.length + tasks.length);
 
   return (
     <DesktopShell
@@ -58,7 +60,13 @@ export default function DesktopChat() {
 
         {/* 訊息串 */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="min-h-[420px] flex-1 space-y-3 overflow-auto rounded-panel border border-border bg-card p-4">
+          <div className="relative flex min-h-0 flex-1 flex-col">
+          <div
+            ref={sticky.ref}
+            onScroll={sticky.onScroll}
+            data-stream="desktop"
+            className="min-h-[420px] flex-1 space-y-3 overflow-auto rounded-panel border border-border bg-card p-4"
+          >
             {messages.map((m) => (
               <MessageBubble key={m.id} message={m} />
             ))}
@@ -72,6 +80,10 @@ export default function DesktopChat() {
                 <ConfirmCard confirm={confirm} onApprove={approveConfirm} onCancel={cancelConfirm} />
               </div>
             )}
+          </div>
+          {sticky.pending > 0 && (
+            <NewMessageButton count={sticky.pending} onClick={() => sticky.scrollToBottom()} />
+          )}
           </div>
 
           <Separator className="my-3" />

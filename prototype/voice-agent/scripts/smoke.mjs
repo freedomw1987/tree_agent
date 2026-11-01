@@ -135,6 +135,32 @@ try {
   const statsText = await page.evaluate(() => document.body.innerText);
   check(statsText.includes("今日完成任務"), "統計頁有每日任務數");
 
+  // 「黏底」行為：用戶拖咗上去 → 新訊息到達出「新訊息」按鈕；撳咗先滾落去
+  await page.goto(`${pathToFileURL(dist).href}#/d/chat`, { waitUntil: "networkidle0" });
+  await page.reload({ waitUntil: "networkidle0" }); // 重載：確保 demo 面板關閉（唔會遮住對話串）
+  await page.waitForSelector("[data-stream=desktop]");
+  await page.evaluate(() => {
+    const el = document.querySelector("[data-stream=desktop]");
+    if (el) {
+      el.style.minHeight = "120px";
+      el.style.height = "120px";
+      el.style.maxHeight = "120px";
+      el.scrollTop = 0;
+      el.dispatchEvent(new Event("scroll", { bubbles: true }));
+    }
+  });
+  await new Promise((r) => setTimeout(r, 250));
+  await page.waitForSelector("input[placeholder*='打字']");
+  await page.type("input[placeholder*='打字']", "幫我睇下交付進度");
+  await page.keyboard.press("Enter");
+  await new Promise((r) => setTimeout(r, 700));
+  const stickyText = await page.evaluate(() => document.body.innerText);
+  check(stickyText.includes("新訊息"), "拖咗上去睇歷史時，新訊息到達出「新訊息」按鈕");
+  await clickByText("新訊息");
+  await new Promise((r) => setTimeout(r, 500));
+  const afterClick = await page.evaluate(() => document.body.innerText);
+  check(!afterClick.includes("新訊息"), "撳「新訊息」後按鈕消失（已滾到最底）");
+
   // 五狀態切換器：行一次 happy → empty（先重載，確保 panel 狀態乾淨）
   await page.goto(pathToFileURL(dist).href, { waitUntil: "networkidle0" });
   await page.evaluate(() => window.localStorage.clear());

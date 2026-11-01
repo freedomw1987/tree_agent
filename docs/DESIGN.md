@@ -144,6 +144,17 @@ cli-terminal
 | `--shadow-pop` | `0 12px 40px rgba(16,24,40,.16)` | Sheet / Dialog / 確認卡浮層 |
 | 動效 | `150ms cubic-bezier(.2,.8,.2,1)` | 過渡；`prefers-reduced-motion` 時降到 0ms |
 
+### 3.6 新訊息到達嘅滾動行為（黏底）
+
+| 用戶位置 | 新訊息到達時 | 理由 |
+|---|---|---|
+| 已經喺對話流**最底部** | 自動滾動到最底 → 立即見到最新訊息 | 佢就喺度睇緊最新，唔使佢再操作 |
+| 已**拖拉到上方**睇緊歷史 | **唔**自動搶位置；底部浮出「新訊息」按鈕（含數量）→ 撳咗先滾到最下方 | 唔會搶走佢嘅閱讀位置（同 WeChat / Slack 一致） |
+
+- 判定閾值：距底 ≤ 80px 即當「喺底部」。
+- 自己送出嘅訊息：一律滾到底（唔論之前喺邊）。
+- 實作：`useStickyStream`（跨 Surface 共用）＋ `NewMessageButton`（圓形浮鈕，底部置中）。
+
 ---
 
 ## 5. 元件庫
@@ -167,6 +178,7 @@ cli-terminal
 | `RiskBadge` | 風險級別徽章（read_only 綠 / write 琥珀 / external_effect 紅） | 全部 surface |
 | `AgentStatusPill` | Agent 狀態（就緒 / 做緊 / 離線 / 要確認） | mobile / desktop |
 | `SessionSheet` | 對話 session 抽屜（列表、切換、開新對話） | mobile / desktop |
+| `NewMessageButton` | 「新訊息」浮鈕（用戶唔喺底部時出現） | mobile / desktop |
 | `StatCard` | 統計卡（今日任務數 / 節省時間） | mobile / desktop |
 | `StateSwitcher` | 五狀態模擬切換（Demo 用，掛喺 demo 面板） | 全部 surface |
 
@@ -217,7 +229,7 @@ cli-terminal
 
 | Module | Surface | Happy | Loading | Empty | Error | Edge |
 |---|---|---|---|---|---|---|
-| M01 client-app | mobile-app | 送出訊息→任務卡 | 錄音中 waveform / 訊息「傳送中」 | 未傾過偈（引導：按住講嘢）／session 抽屜零對話 | Agent 離線 / 網絡斷 | 錄音超 60 秒 / STT 空結果 / 超長訊息 |
+| M01 client-app | mobile-app | 送出訊息→任務卡 | 錄音中 waveform / 訊息「傳送中」 | 未傾過偈（引導：按住講嘢）／session 抽屜零對話 | Agent 離線 / 網絡斷 | 錄音超 60 秒 / STT 空結果 / 超長訊息／拖咗上去睇歷史時出「新訊息」按鈕 |
 | M01 client-app | desktop-mac | 寬版對話 | session 載入 skeleton | 未開 session | sidecar 崩潰提示 | 極長訊息 / 同時多 session |
 | M02 relay-backend | cli-terminal | 送達 log | pending 佇列 | 無送達紀錄 | token 失效 401 / relay 逾時 | request_id 重送（冪等） |
 | M03 mac-runtime | desktop-mac | Agent 就緒 + session 表 | sidecar 啟動中 | 未選 Workspace | sidecar 崩潰 + 自動重啟提示 | session 檔損毀 / workspace 路徑不存在 |

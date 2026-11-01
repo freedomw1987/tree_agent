@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   RotateCcw,
   Loader2,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,25 @@ export function MessageBubble({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── 「新訊息」提示鈕（用戶拖咗上去時出現）───────────────────────── */
+export function NewMessageButton({
+  count,
+  onClick,
+}: {
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="absolute bottom-3 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-medium text-background shadow-pop"
+    >
+      <ArrowDown className="size-3.5" />
+      {count > 1 ? `${count} 則新訊息` : "新訊息"}
+    </button>
   );
 }
 
