@@ -31,7 +31,7 @@ export interface Request {
   title?: string;
 }
 
-export type MessageType = "ready" | "chunk" | "done" | "error" | "log";
+export type MessageType = "ready" | "chunk" | "done" | "partial" | "error" | "log";
 
 export interface Message {
   type: MessageType;
@@ -40,6 +40,8 @@ export interface Message {
   text?: string;
   /** error：人睇嘅訊息（要講得出點解錯、點修） */
   message?: string;
+  /** partial：任務被中止（超預算）—— 有部分結果 */
+  reason?: string;
   /** ready：session 資訊 */
   sessionId?: string;
   sessionTitle?: string;

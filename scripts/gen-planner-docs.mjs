@@ -567,8 +567,8 @@ const items = [
     dod: ["探針 `M00-US-141-task-budget-aborts` 必通過"],
     biz: "v1 唔使用常駐 Fargate（成本門檻 < $30/月）；單任務上限 15 分鐘 + token 預算（具體數值待 Spike 實測後定，見 OQ-2）",
     dep: "M00-US-104",
-    status: "進行中",
-    conclusion: "AWS 側成本守衛已落地（跟 API stack 一齊部署並驗證）：AWS Budgets 月度 $5 預算（80% 電郵告警 ＋ 100% SNS 告警）、SNS 成本告警 topic、CloudWatch 用量 dashboard（Lambda invocations/errors、SQS messages、DynamoDB consumed capacity）。**未做**：單任務預算上限嘅**代碼**（時間/token 上限 → 中止 → partial → 通知）同用量聚合 API。",
+    status: "等待校驗",
+    conclusion: "已完成（AWS 側 ＋ 代碼側）：AWS Budgets 月度 $5 預算（80% 電郵 ＋ 100% SNS 告警）、SNS 成本告警 topic、CloudWatch 用量 dashboard（Lambda invocations/errors、SQS messages、DynamoDB consumed capacity）；單任務預算上限代碼（runtime/sidecar/src/budget-guard.ts）：時間上限（預設 15 分鐘，可喺環境變數調）＋ token 上限 → 超限即 abort session → 標 partial → 通知，9 條探針覆蓋。**未做**：用量聚合 API（dashboard 用 CloudWatch 原生指標代替）。",
     verify: "跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-141`",
     why: "P1：「成本失控」係最大威脅之一，而且好平好快做，唔做就等於放任第一個 AWS 帳單爆。",
     quotes: [

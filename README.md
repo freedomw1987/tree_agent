@@ -58,5 +58,5 @@ cd spikes/relay-transport && npm i && npm test
 - **設計 ✅** 三層文件 + demo 原型（機械驗收 37 項全過）
 - **執行 · 批次 0（3 個 Spike）** — SPIKE-001 ✅ 定案 **SQS long-poll**（p50 227ms / idle $0）；SPIKE-002 iOS ✅ / Android ⛔；SPIKE-003 Polly ✅ / APNs-FCM ⛔
 - **執行 · 批次 1 = M03 mac-runtime** — Node sidecar ✅（session host ＋ IPC ＋ 崩潰重啟 ＋ 真 Pi SDK 接線）；未做：Tauri macOS 殼、Workspace UI、Relay 接線
-- **執行 · 批次 2 = M02 relay-backend** — relay client ✅（冪等 ＋ transcript cursor ＋ queue ack）＋ **真實 AWS 端到端通過**（dev stack `voice-agent-m02-relay`）；HTTP API + 認證 + 成本守衛 ✅（dev stack `voice-agent-m02-api`：POST /tasks → 202、GET /transcript → 200、錯 token → 401；AWS Budget \$5 + SNS + 用量 dashboard）
-- **下一步**：批次 2 剩餘（單任務預算上限代碼）→ 批次 3 = M01 client-app（⚠️ 需要 iOS simulator runtime ＋ Android SDK ＋ 憑證：OQ-10/OQ-11）
+- **執行 · 批次 2 = M02 relay-backend** — ✅ 完成：relay client（冪等 ＋ transcript cursor ＋ SQS/DynamoDB）＋ HTTP API ＋ 認證 ＋ 成本守衛（AWS Budget \$5 + 用量 dashboard）＋ 單任務預算上限代碼（超時/token → abort → partial）
+- **下一步**：批次 3 = M01 client-app（⚠️ 需要 iOS simulator runtime ＋ Android SDK ＋ 憑證：OQ-10/OQ-11）

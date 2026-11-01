@@ -9,6 +9,7 @@ import { createInterface } from "node:readline";
 import { parseRequest, serializeMessage } from "./protocol";
 import { SessionHost } from "./session-host";
 import { createPiFactory } from "./pi-factory";
+import { defaultBudgetFromEnv } from "./budget-guard";
 
 function arg(name: string, fallback: string): string {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -16,7 +17,12 @@ function arg(name: string, fallback: string): string {
 }
 
 const workspace = arg("workspace", process.env.VOICE_AGENT_WORKSPACE ?? process.cwd());
-const host = new SessionHost({ workspace, factory: createPiFactory() });
+const host = new SessionHost({
+  workspace,
+  factory: createPiFactory(),
+  // 單任務預算（US-141）：超時／超 token → abort → partial → 通知
+  budget: defaultBudgetFromEnv(),
+});
 
 host.onMessage((m) => {
   process.stdout.write(`${serializeMessage(m)}\n`);

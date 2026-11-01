@@ -1,4 +1,5 @@
 import type { Message } from "./protocol";
+import { BudgetGuard, defaultBudgetFromEnv, type BudgetGuardOptions, type TaskBudget } from "./budget-guard";
 
 /**
  * M03 session host —— Pi SDK session 嘅宿主
@@ -19,6 +20,8 @@ export interface AgentSessionLike {
   subscribe(cb: (event: unknown) => void): () => void;
   getLastAssistantText(): string | undefined;
   dispose(): void;
+  /** 中止進行中嘅操作（超預算時用；Pi SDK 有 session.abort()） */
+  abort?(): Promise<void> | void;
 }
 
 export interface SessionFactory {
@@ -32,6 +35,10 @@ export interface HostOptions {
   factory: SessionFactory;
   /** 話題規則：命中就開／續對應 session；冇命中就續當前 */
   topicRules?: Array<{ re: RegExp; title: string }>;
+  /** 單任務預算（超時／超 token → 中止 → partial） */
+  budget?: TaskBudget;
+  /** 預算檢查細節（測試可注入短 poll 間隔） */
+  budgetGuardOptions?: BudgetGuardOptions;
 }
 
 interface TrackedSession {
@@ -140,7 +147,7 @@ export class SessionHost {
     return null; // 需要開新
   }
 
-  async prompt(text: string, id?: string): Promise<void> {
+  async prompt(text: string, id?: string, budgetOverride?: TaskBudget): Promise<void> {
     if (!this.started) await this.start();
     if (!this.current) {
       this.emit({ type: "error", id, message: "Session 未就緒：sidecar 開唔到 Pi SDK session" });
@@ -167,7 +174,33 @@ export class SessionHost {
     }
 
     try {
-      await target.session.prompt(text);
+      const budget = budgetOverride ?? this.opts.budget ?? defaultBudgetFromEnv();
+      let aborted = false;
+      const guard = new BudgetGuard(budget, {
+        ...this.opts.budgetGuardOptions,
+        onExceeded: (reason) => {
+          aborted = true;
+          void target.session.abort?.();
+          this.emit({ type: "partial", id, message: reason, reason });
+        },
+      });
+      guard.start();
+      try {
+        await target.session.prompt(text);
+      } finally {
+        guard.stop();
+      }
+      const finalCheck = guard.check();
+      if (aborted || !finalCheck.ok) {
+        this.emit({
+          type: "partial",
+          id,
+          message: finalCheck.reason ?? "任務超預算，已中止",
+          reason: finalCheck.reason,
+          text: target.session.getLastAssistantText() ?? "",
+        });
+        return;
+      }
       this.emit({ type: "done", id, text: target.session.getLastAssistantText() ?? "" });
     } catch (err) {
       this.emit({ type: "error", id, message: this.describeError(err) });

@@ -47,7 +47,7 @@
 | M00-US-122 | US | M05 | Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷） | 4 條 BDD + DoD ｜ [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113, M00-US-121 |
 | M00-US-131 | US | M01-M02 | 完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽） | 4 條 BDD + DoD ｜ [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html) | P0 | 5 | PENDING | SPIKE-003, M00-US-104, M00-US-105 |
 | M00-US-132 | US | M01-M02 | 每日任務數統計 + 每日摘要（核心成功指標） | 3 條 BDD + DoD ｜ [md](ac/M00-US-132.md) ｜ [html](ac/M00-US-132.html) | P1 | 3 | PENDING | M00-US-106, M00-US-104 |
-| M00-US-141 | US | M02 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | 進行中 | M00-US-104 |
+| M00-US-141 | US | M02 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | 等待校驗 | M00-US-104 |
 | TECH-401 | TECH | M01 | 自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin） | 1 條 BDD + DoD ｜ [md](ac/TECH-401.md) ｜ [html](ac/TECH-401.html) | P1 | 8 | PENDING | — |
 | TECH-402 | TECH | M03 | Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊） | 2 條 BDD + DoD ｜ [md](ac/TECH-402.md) ｜ [html](ac/TECH-402.html) | P2 | 5 | PENDING | M00-US-103 |
 
@@ -315,7 +315,7 @@
 - **業務規則**: v1 唔使用常駐 Fargate（成本門檻 < $30/月）；單任務上限 15 分鐘 + token 預算（具體數值待 Spike 實測後定，見 OQ-2）
 - **依賴**: M00-US-104
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-141`
-- **實測結論**: AWS 側成本守衛已落地（跟 API stack 一齊部署並驗證）：AWS Budgets 月度 $5 預算（80% 電郵告警 ＋ 100% SNS 告警）、SNS 成本告警 topic、CloudWatch 用量 dashboard（Lambda invocations/errors、SQS messages、DynamoDB consumed capacity）。**未做**：單任務預算上限嘅**代碼**（時間/token 上限 → 中止 → partial → 通知）同用量聚合 API。
+- **實測結論**: 已完成（AWS 側 ＋ 代碼側）：AWS Budgets 月度 $5 預算（80% 電郵 ＋ 100% SNS 告警）、SNS 成本告警 topic、CloudWatch 用量 dashboard（Lambda invocations/errors、SQS messages、DynamoDB consumed capacity）；單任務預算上限代碼（runtime/sidecar/src/budget-guard.ts）：時間上限（預設 15 分鐘，可喺環境變數調）＋ token 上限 → 超限即 abort session → 標 partial → 通知，9 條探針覆蓋。**未做**：用量聚合 API（dashboard 用 CloudWatch 原生指標代替）。
 - **為什麼這個優先**: P1：「成本失控」係最大威脅之一，而且好平好快做，唔做就等於放任第一個 AWS 帳單爆。
 - **需求錨點**: [req/M00-US-141-requirement.md](req/M00-US-141-requirement.md)
 
