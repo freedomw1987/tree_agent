@@ -192,6 +192,38 @@ try {
   }));
   check(kb.hasSend && kb.hasTextarea, "鍵盤模式：多行輸入框 ＋ 右邊「傳送」按鈕");
 
+  // macOS：輸入列浮動喺視窗最下方（右邊傳送／錄音鈕一齊浮住）
+  await page.goto(`${pathToFileURL(dist).href}#/d/chat`, { waitUntil: "networkidle0" });
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector("input[placeholder*='打字']");
+  const floatInfo = await page.evaluate(() => {
+    const input = document.querySelector("input[placeholder*='打字']");
+    const send = document.querySelector('button[aria-label="發送"]');
+    const mic = document.querySelector('button[aria-label="語音輸入"]');
+    // 注意：DOMRect 經 JSON 序列化會變 {}，所以要轉成 plain object
+    const r = (el) => {
+      if (!el) return null;
+      const b = el.getBoundingClientRect();
+      return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, width: b.width, height: b.height };
+    };
+    return {
+      input: r(input),
+      send: r(send),
+      mic: r(mic),
+      h: window.innerHeight,
+    };
+  });
+  const gapBottom = floatInfo.h - (floatInfo.input?.bottom ?? 0);
+  check(
+    gapBottom < 40,
+    "macOS 輸入列浮喺視窗最下方（距底 < 40px）",
+    `距底 ${Math.round(gapBottom)}px`,
+  );
+  check(
+    floatInfo.send && floatInfo.mic && floatInfo.send.bottom > floatInfo.input.bottom - 40,
+    "右邊嘅傳送／錄音鈕同輸入列一齊浮喺底部",
+  );
+
   // 五狀態切換器：行一次 happy → empty（先重載，確保 panel 狀態乾淨）
   await page.goto(pathToFileURL(dist).href, { waitUntil: "networkidle0" });
   await page.evaluate(() => window.localStorage.clear());

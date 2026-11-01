@@ -198,7 +198,7 @@ cli-terminal
 
 ### 6.2 `desktop-mac`
 - **Layout**：左 sidebar 240px（對話 / Agent / 工具 / 統計）+ 主區 topbar 52px + content
-- **對話頁**：左欄 session 清單（可切換）＋右欄訊息串（最大寬 760px 置中）＋底部輸入列
+- **對話頁**：左欄 session 清單（可切換）＋右欄訊息串（最大寬 760px 置中）＋**浮動輸入列**（貼住視窗最下方，背景半透明 + blur；右邊嘅傳送／錄音鈕一齊浮住；訊息串底部留 28px 淨空避免最後一則被遮）
 - **Agent 頁**：狀態卡（大）、Workspace 選擇（路徑 + 選擇鈕）、Session 表（開關 / 重啟 / 保留期限）
 - **工具頁**：audit log 表格（工具 / 風險 / 摘要 / 結果 / 時間）＋ Risk Gate 規則表
 - **統計頁**：StatCard 行 + 任務明細表

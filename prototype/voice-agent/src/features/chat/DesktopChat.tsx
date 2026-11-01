@@ -4,7 +4,6 @@ import { DesktopShell } from "@/components/shell/DesktopShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useDemoStore } from "@/mock/store";
 import { AgentStatusPill, ConfirmCard, MessageBubble, NewMessageButton, TaskCard } from "./parts";
 import { useStickyStream } from "./useStickyStream";
@@ -29,7 +28,7 @@ export default function DesktopChat() {
       subtitle="同一個 App 嘅桌面版 —— 同一份 transcript"
       actions={<AgentStatusPill status={agentStatus} />}
     >
-      <div className="flex gap-4">
+      <div className="flex h-full gap-4">
         {/* session 清單 */}
         <aside className="w-56 shrink-0">
           <div className="mb-2 text-[11px] font-medium text-muted-foreground">Sessions</div>
@@ -59,13 +58,13 @@ export default function DesktopChat() {
         </aside>
 
         {/* 訊息串 */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="relative flex min-w-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 flex-col">
           <div
             ref={sticky.ref}
             onScroll={sticky.onScroll}
             data-stream="desktop"
-            className="min-h-[420px] flex-1 space-y-3 overflow-auto rounded-panel border border-border bg-card p-4"
+            className="min-h-[420px] flex-1 space-y-3 overflow-auto rounded-panel border border-border bg-card p-4 pb-28"
           >
             {messages.map((m) => (
               <MessageBubble key={m.id} message={m} />
@@ -86,37 +85,39 @@ export default function DesktopChat() {
           )}
           </div>
 
-          <Separator className="my-3" />
-
-          <div className="flex items-center gap-2">
-            <Input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && text.trim()) {
+          {/* 浮動輸入列：貼住視窗最下方，右邊嘅傳送／錄音鈕一齊浮住 */}
+          <div className="pointer-events-none absolute inset-x-0 -bottom-5 -mx-5 z-10 border-t border-border bg-card/85 px-5 pb-3 pt-3 backdrop-blur-md">
+            <div className="pointer-events-auto mx-auto flex max-w-[760px] items-center gap-2">
+              <Input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && text.trim()) {
+                    sendMessage(text.trim());
+                    setText("");
+                  }
+                }}
+                placeholder="打字，或者用咪高峰（⌘K）"
+                className="h-10"
+              />
+              <Button variant="outline" size="icon" aria-label="語音輸入">
+                <Mic className="size-4" />
+              </Button>
+              <Button
+                size="icon"
+                aria-label="發送"
+                onClick={() => {
+                  if (!text.trim()) return;
                   sendMessage(text.trim());
                   setText("");
-                }
-              }}
-              placeholder="打字，或者用咪高峰（⌘K）"
-            />
-            <Button variant="outline" size="icon" aria-label="語音輸入">
-              <Mic className="size-4" />
-            </Button>
-            <Button
-              size="icon"
-              aria-label="發送"
-              onClick={() => {
-                if (!text.trim()) return;
-                sendMessage(text.trim());
-                setText("");
-              }}
-            >
-              <Send className="size-4" />
-            </Button>
-            <Button variant="ghost" size="icon" aria-label="播報最新回覆">
-              <Volume2 className="size-4" />
-            </Button>
+                }}
+              >
+                <Send className="size-4" />
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="播報最新回覆">
+                <Volume2 className="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -25,6 +25,7 @@
 | **FR-M01-12** | 對話 session 入口：Header 對話 chip（顯示當前 session）＋ 抽屜 Sheet（列出對話、標明當前、可切換、「開新對話」）；跨 session 訊息標明所屬對話 | Given 手機對話畫面 When 撳 chip Then 抽屜列出所有對話；開新後當前 session 即時切換、舊對話保留；跨 session 訊息有標記 |
 | **FR-M01-13** | 黏底行為：新訊息到達時，喺底部就自動滾到底；唔喺底部就出「新訊息」按鈕（撳咗先滾落去） | Given 喺底部 When 新訊息到達 Then 自動見到最新訊息；Given 拖拉到上方 When 新訊息到達 Then 位置唔被搶走 ＋ 底部有「新訊息」按鈕，撳咗先滾到底 |
 | **FR-M01-14** | 輸入模式雙軌：左側 Voice/鍵盤轉換鈕；Voice 模式「按住 說話」（按住錄音、放開發送）；鍵盤模式多行輸入 ＋ 右側「傳送」鈕；設定可切「語音送出前先編輯」 | Given Voice 模式 When 按住不放 Then 顯示「放開發送」＋計時，放開即完成錄音並傳送；Given 鍵盤模式 When 輸入多行 Then 右邊有傳送鈕且空內容時 disabled |
+| **FR-M01-15** | macOS 版浮動輸入列：輸入框 ＋ 右邊傳送／錄音鈕浮動喺視窗最下方 | Given macOS 對話頁 When 睇輸入列 Then 貼住視窗底部（背景半透明 ＋ blur）；訊息可喺佢底下滾動，最後一則唔會被遮 |
 | **FR-M01-11** | Tauri mobile native plugin 層（STT / local TTS / push）——TECH-401 | Given 平台無內建能力 When 呼叫 plugin Then Rust 介面穩定、UI 層唔受平台細節影響 |
 
 ## 3. 依賴關係
@@ -61,6 +62,7 @@
 | FR-M01-12 對話 session 入口 | M00-US-101 | mobile-app | /m/chat | step-9 | ✅ 已原型 |
 | FR-M01-13 黏底 + 新訊息按鈕 | M00-US-101 | desktop-mac | /d/chat | — | ✅ 已原型 |
 | FR-M01-14 輸入模式（Voice/鍵盤） | M00-US-102 | mobile-app | /m/chat | — | ✅ 已原型 |
+| FR-M01-15 macOS 浮動輸入列 | M00-US-101 | desktop-mac | /d/chat | — | ✅ 已原型 |
 | FR-M01-01 對話（寬版） | M00-US-101 | desktop-mac | /d/chat | — | ✅ 已原型 |
 | FR-M01-08 統計（大屏） | M00-US-132 | desktop-mac | /d/stats | — | ✅ 已原型 |
 | FR-M01-09 權限狀態 | M00-US-102 | desktop-mac | /d/runtime | — | ✅ 已原型 |
