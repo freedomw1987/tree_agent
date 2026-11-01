@@ -1,6 +1,6 @@
 import { RelayClient } from "../../relay/src/relay-client";
 import { createAwsQueues } from "../../relay/src/aws";
-import { getTranscript, parseEvent, postTasks, type ApiResponse } from "./api";
+import { decideConfirm, getTranscript, parseEvent, postTasks, type ApiResponse } from "./api";
 import { authorize } from "./authorizer";
 
 /**
@@ -46,6 +46,26 @@ export function createHandler(deps: { client: RelayClient; token: string; userId
     try {
       if (method === "POST" && path === "/tasks") {
         return await postTasks(body, { client: deps.client });
+      }
+      if (method === "POST" && /^\/tasks\/[^/]+\/confirm$/.test(path)) {
+        const requestId = decodeURIComponent(path.split("/")[2] ?? "");
+        return await decideConfirm(requestId, body, { client: deps.client });
+      }
+      if (method === "GET" && path.startsWith("/tasks/")) {
+        const requestId = decodeURIComponent(path.slice("/tasks/".length));
+        const state = await deps.client.getTask(requestId);
+        if (!state) {
+          return {
+            statusCode: 404,
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ error: `搵唔到任務 ${requestId}` }),
+          };
+        }
+        return {
+          statusCode: 200,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(state),
+        };
       }
       if (method === "GET" && path === "/transcript") {
         return await getTranscript(query, { client: deps.client });

@@ -98,6 +98,37 @@ export class RelayClient {
   }
 
   /**
+   * Sidecar 端：並行取任務（唔會俾一個卡住嘅任務阻塞成條 queue）
+   *
+   * 場景：任務 A 等緊用戶批核確認卡（可能等 5 分鐘），
+   *       如果順序處理，後面嘅任務 B 就會被卡住 → 所以要並行。
+   */
+  async pollTasksConcurrent(
+    handler: (task: { requestId: string; userId: string; text: string; ts: number }) => Promise<void> | void,
+  ): Promise<void> {
+    const messages = await this.opts.tasksQueue.poll(20000, 10);
+    for (const m of messages) {
+      let payload: { requestId: string; userId: string; text: string; ts: number };
+      try {
+        payload = JSON.parse(m.body);
+      } catch {
+        await this.opts.tasksQueue.ack(m);
+        continue;
+      }
+      // 背景處理：每個訊息自己 ack（唔阻塞其它任務）
+      void (async () => {
+        try {
+          await handler(payload);
+        } catch {
+          /* handler 自己處理錯誤 */
+        } finally {
+          await this.opts.tasksQueue.ack(m);
+        }
+      })();
+    }
+  }
+
+  /**
    * Sidecar 端：交結果（落 transcript ＋ 結果 queue）
    */
   async publishResult(input: {
@@ -144,6 +175,48 @@ export class RelayClient {
       }
       await this.opts.resultsQueue.ack(m);
     }
+  }
+
+  /**
+   * Sidecar 端：出確認卡（跨機：手機會見到呢張卡）
+   */
+  async publishConfirm(input: {
+    requestId: string;
+    confirm: TaskState["confirm"];
+  }): Promise<void> {
+    const state = await this.opts.tasks.get(input.requestId);
+    // ⚠️ 同一張卡要保留用戶已經做咗嘅決定（Agent 再調工具會出新卡，唔可以清咗舊決定）
+    const sameCard = state?.confirm?.id === input.confirm?.id;
+    await this.opts.tasks.put({
+      requestId: input.requestId,
+      userId: this.opts.userId,
+      status: "awaiting_confirm",
+      title: state?.title,
+      result: state?.result,
+      confirm: {
+        ...(input.confirm as NonNullable<TaskState["confirm"]>),
+        decision: sameCard ? state?.confirm?.decision : undefined,
+      },
+      updatedAt: Date.now(),
+    });
+  }
+
+  /** App 端：回覆確認卡（批／唔批） */
+  async decideConfirm(requestId: string, approved: boolean): Promise<void> {
+    const state = await this.opts.tasks.get(requestId);
+    if (!state) throw new Error(`搵唔到任務 ${requestId}`);
+    await this.opts.tasks.put({
+      ...state,
+      confirm: state.confirm
+        ? { ...state.confirm, decision: approved ? "approved" : "cancelled" }
+        : undefined,
+      updatedAt: Date.now(),
+    });
+  }
+
+  /** App 端：查單一任務嘅狀態（手機輪詢結果就靠呢個） */
+  async getTask(requestId: string): Promise<TaskState | undefined> {
+    return this.opts.tasks.get(requestId);
   }
 
   /** App 端：拉 transcript（增量） */

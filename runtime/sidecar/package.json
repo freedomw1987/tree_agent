@@ -8,10 +8,12 @@
     "start": "tsx src/main.ts",
     "test": "vitest run",
     "lint": "tsc --noEmit",
-    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/main.mjs --external:@earendil-works/pi-coding-agent"
+    "build": "npm --prefix ../relay run build && esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/main.mjs --packages=external",
+    "pretest": "npm --prefix ../relay run build"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "^1.4.0"
+    "@earendil-works/pi-coding-agent": "^1.4.0",
+    "@voice-agent/relay": "file:../relay"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RelayClient } from "../../relay/src/relay-client";
-import { FakeQueue, FakeTasks, FakeTranscript } from "../../relay/test/fakes";
+import { FakeQueue, FakeTasks, FakeTranscript } from "../../relay/src/fakes";
 import { createHandler } from "../src/handler";
 
 /**

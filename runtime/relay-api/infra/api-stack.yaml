@@ -177,6 +177,24 @@ Resources:
       # 認證喺 API Lambda 內做（見 runtime/relay-api/README.md「點解唔用 REQUEST authorizer」）
       Target: !Sub "integrations/${ApiIntegration}"
 
+  # 手機 App 查單一任務狀態／結果（GET /tasks/{id}）
+  TaskIdRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: "GET /tasks/{id}"
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${ApiIntegration}"
+
+  # 手機 App 回覆確認卡（POST /tasks/{id}/confirm）—— 跨機風險閘
+  TaskConfirmRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: "POST /tasks/{id}/confirm"
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${ApiIntegration}"
+
   ApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:

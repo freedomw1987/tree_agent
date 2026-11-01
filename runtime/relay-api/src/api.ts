@@ -57,6 +57,36 @@ export async function postTasks(body: unknown, deps: ApiDeps): Promise<ApiRespon
   return json(202, { requestId, status: "queued" });
 }
 
+/** 回覆確認卡（POST /tasks/{id}/confirm） */
+export async function decideConfirm(
+  requestId: string,
+  body: unknown,
+  deps: ApiDeps,
+): Promise<ApiResponse> {
+  const payload = (body ?? {}) as { approved?: unknown };
+  if (typeof payload.approved !== "boolean") {
+    return {
+      statusCode: 400,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: "body 要有 approved: boolean" }),
+    };
+  }
+  try {
+    await deps.client.decideConfirm(requestId, payload.approved);
+  } catch (err) {
+    return {
+      statusCode: 404,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: `回覆失敗：${err instanceof Error ? err.message : String(err)}` }),
+    };
+  }
+  return {
+    statusCode: 200,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ok: true, requestId, approved: payload.approved }),
+  };
+}
+
 export async function getTranscript(
   query: Record<string, string | undefined>,
   deps: ApiDeps,

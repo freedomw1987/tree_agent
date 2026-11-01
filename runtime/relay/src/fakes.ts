@@ -1,5 +1,5 @@
-import type { QueueMessage } from "../src/types";
-import type { Queue, TaskState, TaskStore, TranscriptEntry, TranscriptStore } from "../src/types";
+import type { QueueMessage } from "./types";
+import type { Queue, TaskState, TaskStore, TranscriptEntry, TranscriptStore } from "./types";
 
 /** 測試用 fake（relay ＋ relay-api 共用） */
 

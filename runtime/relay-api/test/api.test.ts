@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getTranscript, postTasks } from "../src/api";
 import { RelayClient } from "../../relay/src/relay-client";
-import { FakeQueue, FakeTasks, FakeTranscript } from "../../relay/test/fakes";
+import { FakeQueue, FakeTasks, FakeTranscript } from "../../relay/src/fakes";
 
 /**
  * M02 HTTP API contract

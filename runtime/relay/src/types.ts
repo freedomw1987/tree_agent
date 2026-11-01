@@ -47,6 +47,19 @@ export interface TranscriptStore {
   read(userId: string, cursor?: string, limit?: number): Promise<{ entries: TranscriptEntry[]; cursor?: string }>;
 }
 
+/** 跨機確認卡（手機 → Mac 往返用） */
+export interface TaskConfirm {
+  /** 確認卡 id（對應 sidecar 內部嘅 pending confirm） */
+  id: string;
+  toolName: string;
+  toolLabel: string;
+  riskLevel: string;
+  preview: string;
+  expiresAt: number;
+  /** 用戶決定（未回覆＝未有） */
+  decision?: "approved" | "cancelled";
+}
+
 export interface TaskState {
   requestId: string;
   userId: string;
@@ -54,6 +67,8 @@ export interface TaskState {
   title?: string;
   result?: string;
   error?: string;
+  /** 待批核嘅確認卡（跨機確認流程） */
+  confirm?: TaskConfirm;
   updatedAt: number;
 }
 

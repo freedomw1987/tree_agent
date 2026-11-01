@@ -132,6 +132,9 @@ const items = [
     id: "M00-US-101",
     type: "US",
     module: "M01",
+    status: "等待校驗",
+    conclusion:
+      "手機版已起好並喺 iOS 27.2 simulator 實測（apps/tauri-mobile/）：WeChat 式對話介面（訊息氣泡、sticky scroll ＋「新訊息」掣、底部浮動輸入列、雙模式輸入（按住說話／鍵盤）、session 抽屜、確認卡卡）＋ Tauri 2 iOS/Android 專案 ＋ 圖標（digital-art 樹）。**跨機鏈路實測通過**：iOS App → relay-api（HTTP）→ SQS → Mac sidecar → Pi SDK Agent → 工具風險閘 → 確認卡經 relay 返手機 → 批核／取消 → 最終答案返到手機 UI。**未做**：真機（要簽名）、Android（要 Android SDK）、語音輸入 plugin、推播",
     title: "App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -180,6 +183,9 @@ const items = [
     id: "M00-US-102",
     type: "US",
     module: "M01",
+    status: "進行中（等 native plugin）",
+    conclusion:
+      "UI 層已就緒：「按住 說話」掣（觸控開始／放開送出）、語音模式／鍵盤模式切換、STT 冇 plugin 時自動退回鍵盤（唔會卡死）。**未做**：native STT plugin（iOS SFSpeechRecognizer zh-HK / Android SpeechRecognizer）—— 要寫 Swift ＋ Kotlin ＋ Tauri plugin 骨架（M01 plugin 層，見 US-131）",
     title: "語音輸入（device native STT + 可編輯文字）",
     phase: "① 語音對話 loop",
     priority: "P0",

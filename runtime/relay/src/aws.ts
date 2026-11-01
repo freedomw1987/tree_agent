@@ -145,6 +145,7 @@ export class DynamoTaskStore implements TaskStore {
     if (state.title) item.title = { S: state.title };
     if (state.result) item.result = { S: state.result };
     if (state.error) item.error = { S: state.error };
+    if (state.confirm) item.confirm = { S: JSON.stringify(state.confirm) };
     await this.client.send(new PutItemCommand({ TableName: this.table, Item: item }));
   }
 
@@ -161,6 +162,7 @@ export class DynamoTaskStore implements TaskStore {
       title: i.title?.S,
       result: i.result?.S,
       error: i.error?.S,
+      confirm: i.confirm?.S ? (JSON.parse(i.confirm.S) as TaskState["confirm"]) : undefined,
       updatedAt: Number(i.updatedAt?.N ?? 0),
     };
   }

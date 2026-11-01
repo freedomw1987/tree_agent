@@ -42,6 +42,8 @@ export interface HostOptions {
 }
 
 interface TrackedSession {
+  /** 而家呢個 session 有冇任務喺度跑（SDK 唔准同一個 session 同時跑兩個 prompt） */
+  busy: boolean;
   session: AgentSessionLike;
   title: string;
   untitled: boolean;
@@ -94,7 +96,7 @@ export class SessionHost {
   }
 
   private track(session: AgentSessionLike, title: string, untitled = false): TrackedSession {
-    const tracked: TrackedSession = { session, title, untitled };
+    const tracked: TrackedSession = { session, title, untitled, busy: false };
     session.subscribe((event) => this.onSessionEvent(event));
     this.sessions.push(tracked);
     this.current = tracked;
@@ -156,6 +158,12 @@ export class SessionHost {
 
     let target = this.route(text);
 
+    // ⚠️ SDK 唔准同一個 session 同時跑兩個 prompt（"Agent is already processing"）
+    //    如果路由到嘅 session 仲喺度跑緊（例如上一個任務被中止但 SDK 仲未釋放）→ 另開新 session
+    if (target?.busy) {
+      target = null;
+    }
+
     if (!target) {
       const topic = this.deriveTopic(text) ?? UNTITLED;
       try {
@@ -173,6 +181,7 @@ export class SessionHost {
       }
     }
 
+    target.busy = true;
     try {
       const budget = budgetOverride ?? this.opts.budget ?? defaultBudgetFromEnv();
       let aborted = false;
@@ -204,6 +213,9 @@ export class SessionHost {
       this.emit({ type: "done", id, text: target.session.getLastAssistantText() ?? "" });
     } catch (err) {
       this.emit({ type: "error", id, message: this.describeError(err) });
+    } finally {
+      // 呢個 session 收工 → 可以接下一個任務
+      target.busy = false;
     }
   }
 

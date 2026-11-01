@@ -46,6 +46,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>探針 `M00-US-102-stt-empty-not-sent` 必通過</li>
   <li>iOS / Android 真機各測 20 句粵語樣本並記錄結果</li>
 </ul>
+<h2>實測結論</h2>
+<div class="rules">UI 層已就緒：「按住 說話」掣（觸控開始／放開送出）、語音模式／鍵盤模式切換、STT 冇 plugin 時自動退回鍵盤（唔會卡死）。**未做**：native STT plugin（iOS SFSpeechRecognizer zh-HK / Android SpeechRecognizer）—— 要寫 Swift ＋ Kotlin ＋ Tauri plugin 骨架（M01 plugin 層，見 US-131）</div>
 <h2>業務規則</h2>
 <div class="rules">STT 一律 device native（音頻唔上傳）；語言 zh-HK；輸入模式：左側 Voice/鍵盤轉換鈕，Voice 模式按住「按住 說話」（放開即完成錄音並傳送），鍵盤模式多行輸入 ＋ 右側「傳送」鈕；『語音送出前先編輯』設定預設關（開啟則轉成文字先編輯再送出）；STT 空結果唔可以送出</div>
 <h2>依賴</h2>

@@ -156,7 +156,7 @@ var SessionHost = class {
     }
   }
   track(session, title, untitled = false) {
-    const tracked = { session, title, untitled };
+    const tracked = { session, title, untitled, busy: false };
     session.subscribe((event) => this.onSessionEvent(event));
     this.sessions.push(tracked);
     this.current = tracked;
@@ -205,6 +205,9 @@ var SessionHost = class {
       return;
     }
     let target = this.route(text);
+    if (target?.busy) {
+      target = null;
+    }
     if (!target) {
       const topic = this.deriveTopic(text) ?? UNTITLED;
       try {
@@ -221,6 +224,7 @@ var SessionHost = class {
         return;
       }
     }
+    target.busy = true;
     try {
       const budget = budgetOverride ?? this.opts.budget ?? defaultBudgetFromEnv();
       let aborted = false;
@@ -252,6 +256,8 @@ var SessionHost = class {
       this.emit({ type: "done", id, text: target.session.getLastAssistantText() ?? "" });
     } catch (err) {
       this.emit({ type: "error", id, message: this.describeError(err) });
+    } finally {
+      target.busy = false;
     }
   }
   /** 分岔：帶住舊上文開新（原 session 唔受影響） */
@@ -1022,27 +1028,173 @@ function createToolRuntime(options) {
   };
 }
 
+// src/relay-worker.ts
+import { createAwsQueues, RelayClient } from "@voice-agent/relay";
+var RelayWorker = class {
+  constructor(client, deps) {
+    this.client = client;
+    this.deps = deps;
+  }
+  running = false;
+  loopPromise = null;
+  /** 執行中嘅任務（SQS at-least-once 可能重複投遞 → 唔好做兩次） */
+  inFlight = /* @__PURE__ */ new Set();
+  /** 開始輪詢（唔 block：喺背景跑） */
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this.loopPromise = this.loop();
+  }
+  async stop() {
+    this.running = false;
+    await this.loopPromise?.catch(() => void 0);
+  }
+  /** 跑一個 poll cycle（測試用：可以同步等佢跑完一個 cycle） */
+  async pollOnce() {
+    await this.client.pollTasksConcurrent(async (task) => {
+      if (this.inFlight.has(task.requestId)) {
+        this.deps.log?.(`relay \u6536\u5230\u91CD\u8907\u4EFB\u52D9 ${task.requestId}\uFF08\u8DF3\u904E\uFF09`);
+        return;
+      }
+      this.inFlight.add(task.requestId);
+      this.deps.log?.(`relay \u6536\u5230\u4EFB\u52D9 ${task.requestId}\uFF1A${task.text.slice(0, 60)}`);
+      try {
+        const result = await this.deps.runTask(task.text, task.requestId);
+        await this.client.publishResult({
+          requestId: task.requestId,
+          text: result.text,
+          status: result.status,
+          error: result.error
+        });
+        this.deps.log?.(`relay \u4EFB\u52D9 ${task.requestId} \u5B8C\u6210\uFF08${result.status}\uFF09`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.deps.log?.(`relay \u4EFB\u52D9 ${task.requestId} \u5931\u6557\uFF1A${message}`);
+        await this.client.publishResult({
+          requestId: task.requestId,
+          text: `\u4EFB\u52D9\u5931\u6557\uFF1A${message}`,
+          status: "failed",
+          error: message
+        });
+      } finally {
+        this.inFlight.delete(task.requestId);
+      }
+    });
+  }
+  async loop() {
+    while (this.running) {
+      try {
+        await this.pollOnce();
+      } catch (err) {
+        this.deps.log?.(`relay \u8F2A\u8A62\u932F\u8AA4\uFF1A${err instanceof Error ? err.message : String(err)}`);
+        await new Promise((r) => setTimeout(r, 2e3));
+      }
+    }
+  }
+};
+function createRelayClientFromEnv(env = process.env) {
+  const tasksQueueUrl = env.TASKS_QUEUE_URL;
+  const resultsQueueUrl = env.RESULTS_QUEUE_URL;
+  const transcriptTable = env.TRANSCRIPT_TABLE;
+  const taskTable = env.TASK_TABLE;
+  if (!tasksQueueUrl || !resultsQueueUrl || !transcriptTable || !taskTable) return null;
+  const userId = env.RELAY_USER_ID ?? "default";
+  const aws = createAwsQueues({
+    region: env.AWS_REGION ?? "ap-southeast-1",
+    tasksQueueUrl,
+    resultsQueueUrl,
+    transcriptTable,
+    taskTable,
+    userId
+  });
+  return new RelayClient({ userId, ...aws });
+}
+
 // src/main.ts
 function arg(name, fallback) {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.split("=")[1] : fallback;
 }
 var workspace = arg("workspace", process.env.VOICE_AGENT_WORKSPACE ?? process.cwd());
+var SerialQueue = class {
+  tail = Promise.resolve();
+  run(task) {
+    const result = this.tail.then(task, task);
+    this.tail = result.then(
+      () => void 0,
+      () => void 0
+    );
+    return result;
+  }
+};
+var serial = new SerialQueue();
+var relayClient = createRelayClientFromEnv();
+var currentRelayRequestId = null;
+async function relayConfirm(requestId, confirmId) {
+  if (!relayClient) return;
+  const deadline = Date.now() + 5 * 60 * 1e3;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 2e3));
+    try {
+      const state = await relayClient.getTask(requestId);
+      if (state?.confirm?.id !== confirmId) continue;
+      const decision = state?.confirm?.decision;
+      if (decision === "approved") {
+        tools.confirms.approve(confirmId);
+        return;
+      }
+      if (decision === "cancelled") {
+        tools.confirms.cancel(confirmId);
+        return;
+      }
+    } catch (err) {
+      process.stderr.write(`[relay] \u67E5\u78BA\u8A8D\u72C0\u614B\u5931\u6557\uFF1A${err}
+`);
+    }
+  }
+  tools.confirms.expire(confirmId);
+}
 var tools = createToolRuntime({
   workspace,
   onConfirmRequest: (r) => {
-    process.stdout.write(
-      `${serializeMessage({
-        type: "confirm_request",
-        id: r.id,
-        toolName: r.toolName,
-        toolLabel: r.toolLabel,
-        riskLevel: r.riskLevel,
-        preview: r.preview,
-        expiresAt: r.expiresAt
-      })}
+    if (!relayClient || !currentRelayRequestId) {
+      process.stdout.write(
+        `${serializeMessage({
+          type: "confirm_request",
+          id: r.id,
+          toolName: r.toolName,
+          toolLabel: r.toolLabel,
+          riskLevel: r.riskLevel,
+          preview: r.preview,
+          expiresAt: r.expiresAt
+        })}
 `
-    );
+      );
+      return;
+    }
+    const requestId = currentRelayRequestId;
+    void (async () => {
+      try {
+        await relayClient.publishConfirm({
+          requestId,
+          confirm: {
+            id: r.id,
+            toolName: r.toolName,
+            toolLabel: r.toolLabel,
+            riskLevel: r.riskLevel,
+            preview: r.preview,
+            expiresAt: r.expiresAt
+          }
+        });
+        process.stderr.write(`[relay] \u4EFB\u52D9 ${requestId} \u7B49\u7DCA\u78BA\u8A8D\uFF1A${r.toolName}
+`);
+        await relayConfirm(requestId, r.id);
+      } catch (err) {
+        process.stderr.write(`[relay] \u51FA\u78BA\u8A8D\u5361\u5931\u6557\uFF1A${err}
+`);
+        tools.confirms.cancel(r.id);
+      }
+    })();
   }
 });
 var host = new SessionHost({
@@ -1051,9 +1203,21 @@ var host = new SessionHost({
   // 單任務預算（US-141）：超時／超 token → abort → partial → 通知
   budget: defaultBudgetFromEnv()
 });
+var pendingTasks = /* @__PURE__ */ new Map();
 host.onMessage((m) => {
   process.stdout.write(`${serializeMessage(m)}
 `);
+  if (m.id && (m.type === "done" || m.type === "error" || m.type === "partial")) {
+    const resolve2 = pendingTasks.get(m.id);
+    if (resolve2) {
+      pendingTasks.delete(m.id);
+      resolve2({
+        text: m.type === "done" ? m.text ?? "" : m.text ?? m.message ?? "",
+        status: m.type === "done" ? "completed" : m.type === "partial" ? "partial" : "failed",
+        error: m.type === "done" ? void 0 : m.message
+      });
+    }
+  }
 });
 var rl = createInterface({ input: process.stdin });
 rl.on("line", async (line) => {
@@ -1080,7 +1244,7 @@ rl.on("line", async (line) => {
       );
       break;
     case "prompt":
-      await host.prompt(req.text ?? "", req.id);
+      await serial.run(() => host.prompt(req.text ?? "", req.id));
       break;
     case "fork":
       await host.fork(req.id);
@@ -1142,3 +1306,29 @@ process.on("SIGTERM", () => {
   void host.dispose().then(() => process.exit(0));
 });
 await host.start();
+if (relayClient) {
+  const worker = new RelayWorker(relayClient, {
+    runTask: async (text, requestId) => {
+      return new Promise((resolve2) => {
+        pendingTasks.set(requestId, resolve2);
+        void serial.run(() => {
+          currentRelayRequestId = requestId;
+          return host.prompt(text, requestId);
+        }).catch((err) => {
+          pendingTasks.delete(requestId);
+          resolve2({
+            text: `\u4EFB\u52D9\u5931\u6557\uFF1A${err instanceof Error ? err.message : String(err)}`,
+            status: "failed",
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }).finally(() => {
+          currentRelayRequestId = null;
+        });
+      });
+    },
+    log: (msg) => process.stderr.write(`[relay] ${msg}
+`)
+  });
+  worker.start();
+  process.stderr.write("[relay] worker \u5DF2\u555F\u52D5\uFF08\u8F2A\u8A62 tasks queue\uFF09\n");
+}

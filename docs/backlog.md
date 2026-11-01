@@ -34,8 +34,8 @@
 | SPIKE-001 | Spike | M02 | AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-001.md) ｜ [html](ac/SPIKE-001.html) | P0 | 3 | 等待校驗 | — |
 | SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | 進行中（等真機/SDK） | — |
 | SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | 進行中（等憑證） | — |
-| M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 9 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
-| M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
+| M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 9 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | 等待校驗 | — |
+| M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | 進行中（等 native plugin） | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 7 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | 等待校驗 | — |
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | 等待校驗 | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
@@ -157,6 +157,7 @@
 - **業務規則**: App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中；對話 session 由 Agent 自動分流，App 只提供入口（session 抽屜 ＋ 開新對話）；黏底規則：在底部 → 新訊息到達自動滾到底；唔喺底部 → 唔搶位置，出「新訊息」按鈕，撳咗先滾落去（距底 ≤ 80px 當作「喺底部」）；macOS 版輸入列浮動喺視窗最下方（背景半透明 + blur，內容可喺底下滾動）
 - **依賴**: Tauri 2、Rust core、AWS relay API（US-104）、M00-US-103（session 策略）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-101`
+- **實測結論**: 手機版已起好並喺 iOS 27.2 simulator 實測（apps/tauri-mobile/）：WeChat 式對話介面（訊息氣泡、sticky scroll ＋「新訊息」掣、底部浮動輸入列、雙模式輸入（按住說話／鍵盤）、session 抽屜、確認卡卡）＋ Tauri 2 iOS/Android 專案 ＋ 圖標（digital-art 樹）。**跨機鏈路實測通過**：iOS App → relay-api（HTTP）→ SQS → Mac sidecar → Pi SDK Agent → 工具風險閘 → 確認卡經 relay 返手機 → 批核／取消 → 最終答案返到手機 UI。**未做**：真機（要簽名）、Android（要 Android SDK）、語音輸入 plugin、推播
 - **為什麼這個優先**: P0：呢個係用戶唯一接觸面；冇佢，之後所有能力都驗收唔到。
 - **需求錨點**: [req/M00-US-101-requirement.md](req/M00-US-101-requirement.md)
 
@@ -169,6 +170,7 @@
 - **業務規則**: STT 一律 device native（音頻唔上傳）；語言 zh-HK；輸入模式：左側 Voice/鍵盤轉換鈕，Voice 模式按住「按住 說話」（放開即完成錄音並傳送），鍵盤模式多行輸入 ＋ 右側「傳送」鈕；『語音送出前先編輯』設定預設關（開啟則轉成文字先編輯再送出）；STT 空結果唔可以送出
 - **依賴**: SPIKE-002 結論、Tauri mobile native plugin（TECH-401）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-102`
+- **實測結論**: UI 層已就緒：「按住 說話」掣（觸控開始／放開送出）、語音模式／鍵盤模式切換、STT 冇 plugin 時自動退回鍵盤（唔會卡死）。**未做**：native STT plugin（iOS SFSpeechRecognizer zh-HK / Android SpeechRecognizer）—— 要寫 Swift ＋ Kotlin ＋ Tauri plugin 骨架（M01 plugin 層，見 US-131）
 - **為什麼這個優先**: P0：「唔使打字」係呢個產品嘅核心價值；呢個係第一個真正解決痛點嘅功能。
 - **需求錨點**: [req/M00-US-102-requirement.md](req/M00-US-102-requirement.md)
 
