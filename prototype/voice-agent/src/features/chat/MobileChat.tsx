@@ -8,11 +8,23 @@ import {
   X,
   Volume2,
   WifiOff,
+  MessagesSquare,
+  Plus,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetCloseButton,
+} from "@/components/ui/sheet";
 import { useDemoStore, type Message, type Task } from "@/mock/store";
 import {
   AgentStatusPill,
@@ -37,6 +49,13 @@ export default function MobileChat() {
   const recording = useDemoStore((s) => s.recording);
   const notify = useDemoStore((s) => s.notify);
   const settings = useDemoStore((s) => s.settings);
+  const sessions = useDemoStore((s) => s.sessions);
+  const currentSessionId = useDemoStore((s) => s.currentSessionId);
+  const sessionSheetOpen = useDemoStore((s) => s.sessionSheetOpen);
+  const openSessionSheet = useDemoStore((s) => s.openSessionSheet);
+  const closeSessionSheet = useDemoStore((s) => s.closeSessionSheet);
+  const switchSession = useDemoStore((s) => s.switchSession);
+  const startNewSession = useDemoStore((s) => s.startNewSession);
 
   const sendMessage = useDemoStore((s) => s.sendMessage);
   const requestConfirm = useDemoStore((s) => s.requestConfirm);
@@ -102,11 +121,21 @@ export default function MobileChat() {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold">Voice Agent</span>
-          <AgentStatusPill status={agentStatus} />
+          <button
+            onClick={openSessionSheet}
+            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium hover:bg-border"
+            title="對話 session（自動分流 + 開新對話）"
+          >
+            <MessagesSquare className="size-3" />
+            {sessions.find((s) => s.id === currentSessionId)?.title ?? "對話"}
+          </button>
         </div>
-        <NavLink to="/m/settings" className="rounded-control p-1.5 text-muted-foreground hover:bg-muted">
-          <SettingsIcon className="size-4" />
-        </NavLink>
+        <div className="flex items-center gap-1.5">
+          <AgentStatusPill status={agentStatus} />
+          <NavLink to="/m/settings" className="rounded-control p-1.5 text-muted-foreground hover:bg-muted">
+            <SettingsIcon className="size-4" />
+          </NavLink>
+        </div>
       </header>
 
       {/* Banners */}
@@ -150,7 +179,18 @@ export default function MobileChat() {
         ) : (
           stream.map((item) => {
             if (item.kind === "msg") {
-              return <MessageBubble key={item.m.id} message={item.m} onPlay={playVoice} />;
+              const other = item.m.sessionId && item.m.sessionId !== currentSessionId;
+              const otherTitle = other
+                ? sessions.find((s) => s.id === item.m.sessionId)?.title
+                : undefined;
+              return (
+                <MessageBubble
+                  key={item.m.id}
+                  message={item.m}
+                  onPlay={playVoice}
+                  sessionTitle={otherTitle}
+                />
+              );
             }
             const t = item.t;
             return (
@@ -257,7 +297,64 @@ export default function MobileChat() {
         ))}
       </nav>
 
-        {/* 推播通知（Polly 語音通知） */}
+        {/* Session 抽屜（自動分流 + 開新對話）*/}
+      <Sheet
+        open={sessionSheetOpen}
+        onOpenChange={(o) => (o ? openSessionSheet() : closeSessionSheet())}
+      >
+        <SheetContent side="bottom">
+          <SheetHeader>
+            <div>
+              <SheetTitle>對話 session</SheetTitle>
+              <SheetDescription>
+                Agent 會自動分流：同一話題就續返舊對話，唔肯定就開新（自動命名）。想自己開就撳下面。
+              </SheetDescription>
+            </div>
+            <SheetCloseButton />
+          </SheetHeader>
+
+          <div className="min-h-0 flex-1 space-y-2 overflow-auto p-4">
+            {sessions.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                仲未有對話 session —— 講第一句嘢就會自動開一條。
+              </div>
+            ) : (
+              sessions.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => switchSession(s.id)}
+                  className={`flex w-full items-center gap-2 rounded-control border p-3 text-left transition-colors ${
+                    s.id === currentSessionId
+                      ? "border-primary/40 bg-primary/8"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <MessagesSquare className="size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-medium">{s.title}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {s.messages} 則訊息 · {s.auto ? "自動分流開出" : "人手開"}
+                    </div>
+                  </div>
+                  {s.id === currentSessionId && <Badge variant="default">當前</Badge>}
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="border-t border-border p-4">
+            <Button className="w-full" onClick={() => startNewSession("新對話")}>
+              <Plus className="size-4" /> 開新對話
+            </Button>
+            <p className="mt-2 text-[10px] leading-[1.5] text-muted-foreground">
+              <Sparkles className="inline size-3" /> 想「帶住舊上文開新」，用 Pi SDK 嘅 fork（第二入口，
+              預設唔開）。
+            </p>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* 推播通知（Polly 語音通知） */}
         {notify && (
           <div className="absolute left-1/2 top-14 z-30 w-[350px] -translate-x-1/2 rounded-panel border border-border bg-card p-3 shadow-pop">
           <div className="flex items-start gap-2">

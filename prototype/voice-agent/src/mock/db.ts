@@ -20,6 +20,7 @@ export const initialMessages: Message[] = [
     status: "delivered",
     requestId: "req-0001",
     hasAudio: true,
+    sessionId: "s-1",
   },
   {
     id: "m-seed-2",
@@ -28,6 +29,7 @@ export const initialMessages: Message[] = [
     text: "收到，我用 read-only 工具睇咗交付計劃，正整草稿…",
     ts: ago(1000 * 60 * 6 - 8000),
     requestId: "req-0001",
+    sessionId: "s-1",
   },
 ];
 

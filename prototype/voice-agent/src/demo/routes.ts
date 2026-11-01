@@ -83,4 +83,14 @@ export const demoSteps: DemoStep[] = [
     title: "每日任務數（核心指標）",
     say: "每日完成任務數 + 估算慳咗幾多分鐘打字 —— 呢個就係成個產品嘅成功標準。",
   },
+  {
+    id: "step-9",
+    surface: "mobile-app",
+    route: "/m/chat",
+    title: "對話 session：自動分流 ＋ 開新對話",
+    say: "同一話題會續返舊對話（自動分流）；想新開就撳「開新對話」。session 住 Mac 本地，手機同桌面見到同一批。",
+    run: () => {
+      void getStore().then((s) => s.getState().openSessionSheet());
+    },
+  },
 ];

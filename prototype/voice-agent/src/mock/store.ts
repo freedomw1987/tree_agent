@@ -31,6 +31,7 @@ export interface Message {
   requestId?: string;
   taskId?: string;
   hasAudio?: boolean;
+  sessionId?: string;
 }
 
 export interface Task {
@@ -84,6 +85,8 @@ export interface SessionInfo {
   startedAt: string;
   messages: number;
   state: "active" | "idle" | "broken";
+  /** true = 由「自動分流」開出嚟（唔係人手開） */
+  auto?: boolean;
 }
 
 export interface Settings {
@@ -101,6 +104,8 @@ interface DemoState {
   consoleLines: ConsoleLine[];
   relay: RelayEntry[];
   sessions: SessionInfo[];
+  currentSessionId: string;
+  sessionSheetOpen: boolean;
   agentStatus: AgentStatus;
   workspace: string;
   settings: Settings;
@@ -118,6 +123,10 @@ interface DemoState {
   updateSettings: (p: Partial<Settings>) => void;
   setAgentStatus: (s: AgentStatus) => void;
   dismissNotify: () => void;
+  openSessionSheet: () => void;
+  closeSessionSheet: () => void;
+  switchSession: (id: string) => void;
+  startNewSession: (title?: string) => void;
 
   sendMessage: (text: string, opts?: { voice?: boolean; title?: string }) => void;
   requestConfirm: () => void;
@@ -132,6 +141,43 @@ const now = () => new Date().toISOString();
 let seq = 0;
 const id = (p: string) => `${p}-${Date.now().toString(36)}-${(seq += 1)}`;
 
+/**
+ * 自動分流（M04/M03 決策）：由訊息內容猜返屬於邊個 session。
+ * 命中規則 → 續返嗰條 session；冇命中 → 開新（自動命名）。
+ * （demo 用簡化關鍵詞規則；真實版由 Agent 判斷。）
+ */
+export function routeSession(text: string, sessions: SessionInfo[]): SessionInfo {
+  const rules: { re: RegExp; title: string }[] = [
+    { re: /客戶|客|報價|email|郵件/i, title: "客戶跟進" },
+    { re: /交付|摘要|進度|週報|總結/i, title: "本週交付摘要" },
+  ];
+  for (const r of rules) {
+    if (r.re.test(text)) {
+      const hit = sessions.find((s) => s.title === r.title);
+      if (hit) return hit;
+      return {
+        id: id("s"),
+        title: r.title,
+        startedAt: now(),
+        messages: 0,
+        state: "idle",
+        auto: true,
+      };
+    }
+  }
+  const current = sessions.find((s) => s.id === sessions[0]?.id) ?? sessions[0];
+  return (
+    current ?? {
+      id: id("s"),
+      title: "新對話",
+      startedAt: now(),
+      messages: 0,
+      state: "idle",
+      auto: true,
+    }
+  );
+}
+
 export const useDemoStore = create<DemoState>()(
   persist(
     (set, get) => ({
@@ -142,6 +188,8 @@ export const useDemoStore = create<DemoState>()(
       consoleLines: initialConsole,
       relay: initialRelay,
       sessions: initialSessions,
+      currentSessionId: initialSessions[0].id,
+      sessionSheetOpen: false,
       agentStatus: "ready",
       workspace: "~/agent-workspace",
       settings: initialSettings,
@@ -159,6 +207,23 @@ export const useDemoStore = create<DemoState>()(
       updateSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
       setAgentStatus: (agentStatus) => set({ agentStatus }),
       dismissNotify: () => set({ notify: null }),
+      openSessionSheet: () => set({ sessionSheetOpen: true }),
+      closeSessionSheet: () => set({ sessionSheetOpen: false }),
+      switchSession: (currentSessionId) => set({ currentSessionId, sessionSheetOpen: false }),
+      startNewSession: (title) => {
+        const s: SessionInfo = {
+          id: id("s"),
+          title: title ?? "新對話",
+          startedAt: now(),
+          messages: 0,
+          state: "idle",
+        };
+        set((st) => ({
+          sessions: [s, ...st.sessions],
+          currentSessionId: s.id,
+          sessionSheetOpen: false,
+        }));
+      },
 
       sendMessage: (text, opts) => {
         const { demoMode, agentStatus } = get();
@@ -167,6 +232,14 @@ export const useDemoStore = create<DemoState>()(
         const requestId = id("req");
         const taskId = id("task");
         const ts = now();
+
+        // 自動分流：續返對應 session 嘅話繼續，冇對應就開新（自動命名）
+        const target = routeSession(text, get().sessions);
+        const known = get().sessions.some((s) => s.id === target.id);
+        if (!known) {
+          set((s) => ({ sessions: [target, ...s.sessions] }));
+        }
+        set({ currentSessionId: target.id });
 
         const userMsg: Message = {
           id: id("m"),
@@ -178,10 +251,14 @@ export const useDemoStore = create<DemoState>()(
           requestId,
           taskId,
           hasAudio: opts?.voice,
+          sessionId: target.id,
         };
 
         set((s) => ({
           messages: [...s.messages, userMsg],
+          sessions: s.sessions.map((x) =>
+            x.id === target.id ? { ...x, messages: x.messages + 1 } : x,
+          ),
           tasks: [
             ...s.tasks,
             {
@@ -509,6 +586,8 @@ export const useDemoStore = create<DemoState>()(
           consoleLines: initialConsole,
           relay: initialRelay,
           sessions: initialSessions,
+          currentSessionId: initialSessions[0].id,
+          sessionSheetOpen: false,
           agentStatus: "ready",
           workspace: "~/agent-workspace",
           settings: initialSettings,
@@ -528,6 +607,7 @@ export const useDemoStore = create<DemoState>()(
         consoleLines: s.consoleLines,
         relay: s.relay,
         sessions: s.sessions,
+        currentSessionId: s.currentSessionId,
         settings: s.settings,
         workspace: s.workspace,
       }),

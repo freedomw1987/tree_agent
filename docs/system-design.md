@@ -64,7 +64,7 @@
 |---|---|---|---|---|
 | **M01 client-app** | 三端 UI 殼：對話、語音輸入、語音回覆、通知、統計 | 本機 UI 狀態、權限狀態、session 選取 | Relay API（send / fetch transcript / confirm）、推播註冊 | 唔做 Agent 邏輯、唔存 transcript 真相 |
 | **M02 relay-backend** | 訊息中轉、認證、持久化、TTS、推播、成本守衛 | DynamoDB transcript、任務狀態、TTS cache | HTTP/WS 端點（App + Sidecar 兩種 client） | **唔執行 Agent**、唔持有 Workspace 憑證 |
-| **M03 mac-runtime** | 唯一執行 Pi SDK 嘅地方：sidecar、session、Workspace | Workspace 路徑、session 檔、sidecar process | IPC（Rust ↔ sidecar）、Relay 認證後的 client、工具註冊表 | 唔畫 UI（只用 minimal 狀態 UI）、唔直接碰 AWS 持久化 |
+| **M03 mac-runtime** | 唯一執行 Pi SDK 嘅地方：sidecar、session（持久化 ＋ 自動分流 ＋ 自動命名）、Workspace | Workspace 路徑、session 檔、當前 session、sidecar process | IPC（Rust ↔ sidecar）、Relay 認證後的 client、工具註冊表、session 分流結果 | 唔畫 UI（只用 minimal 狀態 UI）、唔直接碰 AWS 持久化 |
 | **M04 tool-governance** | 工具風險分級＋Risk Gate＋確認流程＋audit log＋AuthProvider 抽象 | risk_level 註冊表、確認卡狀態、audit log | 工具註冊 API、確認請求/回覆 API、AuthProvider 介面 | 唔實作具體工具（落 M05）、唔決定 Agent 咩時候用工具 |
 | **M05 tool-catalog** | 具體工具：外部服務、檔案、terminal | 工具參數 schema、憑證引用（Mac 本地） | 註冊到 M04 嘅工具表 | 唔繞過 Risk Gate、唔將憑證離開 Mac |
 
@@ -114,6 +114,19 @@ M03 工具調用 → M04 Risk Gate 判定 `write`/`external_effect` → M04 產�
 - Sidecar 認證同 App 認證分開（各自 token / client credentials）→ 令 Sidecar 唔需要用 App token。
 - 網絡中斷 → M01 重連後按 `last_seen_cursor` 補拉 transcript（M02 提供增量讀取）。
 
+### 5.4 對話 session 分流（新增 — M03 決策，M01 只提供入口）
+
+| 情況 | 行為 | 用戶感覺 |
+|---|---|---|
+| 新訊息屬於現有 session 話題 | 續用該 session（`switchSession` / 沿用 active session） | 唔使做任何嘢 |
+| 新訊息屬於新話題 | 開新 session 並自動命名（`newSession` + Agent 生成標題） | 唔使做任何嘢，見到「對話：XXX」chip 轉咗 |
+| 用戶想新開 | 「開新對話」按鈕（手機抽屜 / 桌面左欄） | 撳一下 |
+| 用戶想帶上文開新 | `fork()`（第二入口，預設唔開） | 明確要求時先用 |
+
+- 分流判斷喺 **runtime 層**（M03）做 → App 唔包含任何 Agent 邏輯。
+- session **屬於一個 Workspace**：切 Workspace = 換一組 session。
+- session 住 Mac 本地（file-backed SessionManager），跨端經 Relay 見到同一批。
+
 ---
 
 ## 6. 資料模型（純文字描述，唔係程式碼）
@@ -123,7 +136,7 @@ M03 工具調用 → M04 Risk Gate 判定 `write`/`external_effect` → M04 產�
 | transcript（DynamoDB） | partition: user_id；sort: ts#request_id | role、content、kind（text/voice/task/confirm）、audio_url | OQ-4 未決（建議 30 日） |
 | task（DynamoDB） | request_id | status（queued/running/awaiting_confirm/completed/failed/partial）、risk_level、started_at、ended_at、result_ref | 同 transcript |
 | tts_cache（S3 + DynamoDB 索引） | hash(text+voice) | mp3_url、created_at | 24 小時 |
-| session（Mac 本地） | session file | Pi SDK session entries | 保留喺 Mac，唔上雲 |
+| session（Mac 本地） | session file | Pi SDK session entries、workspace 關聯、auto 標記 | 保留喺 Mac，唔上雲 |
 | audit_log（Mac 本地 + transcript 摘要） | 序號 | tool、risk_level、args_digest、result_digest、ts | Mac 本地 |
 
 > 憑證（外部服務 token、AWS secret）**只存 Mac 本地或 AWS Secrets Manager**，永不進 transcript / log / repo。

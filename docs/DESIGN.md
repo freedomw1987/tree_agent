@@ -26,7 +26,8 @@ mobile-app
 ├── /m/chat          對話主畫面（訊息串 + 輸入列 + 錄音鍵 + 確認卡 + 任務卡片）
 │   ├── 狀態：錄音中（waveform + 計時）
 │   ├── 狀態：STT 結果可編輯（送出事實）
-│   └── 狀態：待確認（確認卡）
+│   ├── 狀態：待確認（確認卡）
+│   └── 抽屜：對話 session（Header chip → Sheet：切換 / 開新對話）
 ├── /m/stats         每日任務數（今日任務數 + 節省輸入時間 + 任務明細）
 └── /m/settings      設定（登入 token、語音輸入開關、語音回覆開關、安靜模式、推播權限狀態）
 ```
@@ -83,6 +84,19 @@ cli-terminal
 ### 3.4 每日統計流（step-8）
 
 `/m/stats` 顯示今日完成任務數（核心指標）+ 節省輸入時間估算 + 任務明細（按時間倒序）+ 空狀態引導「用講嘅方式派第一個任務」。
+
+### 3.5 對話 session 策略（step-9）
+
+| 規則 | 內容 |
+|---|---|
+| **自動分流（預設）** | Agent 判斷新訊息屬於邊個 session：同一話題 → 續返原本 session；新話題 → 開新 session 並**自動命名**（如「客戶跟進」「本週交付摘要」） |
+| **開新對話按鈕** | 手機 Header 有對話 chip（顯示當前 session 標題）→ 抽屜 Sheet → 「開新對話」；桌面版左欄 session 清單可直接切換 |
+| **跨 session 標記** | 喺當前 session 睇到其他 session 嘅訊息 → 訊息上方標明所屬對話（唔會混亂） |
+| **fork（第二入口）** | 「帶住舊上文開新」用 Pi SDK `fork()`；預設唔開，避免 session 樹失控 |
+| **session 屬於 Workspace** | 切 Workspace = 換一組 session（唔會跨專案污染 context） |
+| **session 住 Mac 本地** | 唔上雲；手機／桌面經 Relay 見到同一批 session |
+
+> 設計取捨：手機端唔設「逐次揀 session」嘅步驟（雙手唔得閒時每多一步都係摩擦）；session 管理交俾 Agent，用戶只保留「想新開」呢一個手動入口。
 
 ---
 
@@ -152,6 +166,7 @@ cli-terminal
 | `ConfirmCard` | 確認卡（預覽 / 風險徽章 / 倒數 / 確認 / 取消） | mobile / desktop |
 | `RiskBadge` | 風險級別徽章（read_only 綠 / write 琥珀 / external_effect 紅） | 全部 surface |
 | `AgentStatusPill` | Agent 狀態（就緒 / 做緊 / 離線 / 要確認） | mobile / desktop |
+| `SessionSheet` | 對話 session 抽屜（列表、切換、開新對話） | mobile / desktop |
 | `StatCard` | 統計卡（今日任務數 / 節省時間） | mobile / desktop |
 | `StateSwitcher` | 五狀態模擬切換（Demo 用，掛喺 demo 面板） | 全部 surface |
 
@@ -187,7 +202,7 @@ cli-terminal
 | Route | 畫面 | Module | Surface | Demo 步驟 |
 |---|---|---|---|---|
 | `/` | Surface 選擇 + demo 路線面板 | — | 全 | — |
-| `/m/chat` | 對話（訊息／錄音／STT／任務卡／確認卡） | M01, M04, M05 | mobile-app | step-1, step-4, step-5 |
+| `/m/chat` | 對話（訊息／錄音／STT／任務卡／確認卡／session 抽屜） | M01, M03, M04, M05 | mobile-app | step-1, step-4, step-5, step-9 |
 | `/m/stats` | 每日任務數 | M01, M02 | mobile-app | step-8 |
 | `/m/settings` | 設定（登入／語音／通知） | M01, M02 | mobile-app | — |
 | `/d/chat` | 對話（寬版） | M01, M04 | desktop-mac | — |
@@ -202,10 +217,11 @@ cli-terminal
 
 | Module | Surface | Happy | Loading | Empty | Error | Edge |
 |---|---|---|---|---|---|---|
-| M01 client-app | mobile-app | 送出訊息→任務卡 | 錄音中 waveform / 訊息「傳送中」 | 未傾過偈（引導：按住講嘢） | Agent 離線 / 網絡斷 | 錄音超 60 秒 / STT 空結果 / 超長訊息 |
+| M01 client-app | mobile-app | 送出訊息→任務卡 | 錄音中 waveform / 訊息「傳送中」 | 未傾過偈（引導：按住講嘢）／session 抽屜零對話 | Agent 離線 / 網絡斷 | 錄音超 60 秒 / STT 空結果 / 超長訊息 |
 | M01 client-app | desktop-mac | 寬版對話 | session 載入 skeleton | 未開 session | sidecar 崩潰提示 | 極長訊息 / 同時多 session |
 | M02 relay-backend | cli-terminal | 送達 log | pending 佇列 | 無送達紀錄 | token 失效 401 / relay 逾時 | request_id 重送（冪等） |
 | M03 mac-runtime | desktop-mac | Agent 就緒 + session 表 | sidecar 啟動中 | 未選 Workspace | sidecar 崩潰 + 自動重啟提示 | session 檔損毀 / workspace 路徑不存在 |
+| M03 mac-runtime | mobile-app | 對話 session 抽屜（切換 / 開新對話） | 載入 session 清單 | 零對話（引導：講第一句就自動開） | session 讀取失敗 | 同一 session 被開兩次 / 跨 session 訊息標記 |
 | M04 tool-governance | mobile-app | 確認卡 → 執行 | 等待確認（倒數） | 冇待確認操作 | 取消 / 過期 | 語音 confirm / 連續兩張卡 |
 | M04 tool-governance | cli-terminal | 工具調用 log | 工具執行中 | 未調用過工具 | 工具拋錯 | 被 Risk Gate 攔截（危險命令） |
 | M05 tool-catalog | desktop-mac | audit log 有紀錄 | 工具執行中 | 工具未註冊 | 憑證失效 / 檔案不存在 | `rm -rf` 攔截 / 60 秒超時 / 200 行截斷 |

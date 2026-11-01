@@ -13,6 +13,8 @@ export default function DesktopChat() {
   const tasks = useDemoStore((s) => s.tasks);
   const confirm = useDemoStore((s) => s.confirm);
   const sessions = useDemoStore((s) => s.sessions);
+  const currentSessionId = useDemoStore((s) => s.currentSessionId);
+  const switchSession = useDemoStore((s) => s.switchSession);
   const agentStatus = useDemoStore((s) => s.agentStatus);
   const sendMessage = useDemoStore((s) => s.sendMessage);
   const approveConfirm = useDemoStore((s) => s.approveConfirm);
@@ -30,11 +32,14 @@ export default function DesktopChat() {
         <aside className="w-56 shrink-0">
           <div className="mb-2 text-[11px] font-medium text-muted-foreground">Sessions</div>
           <div className="space-y-1">
-            {sessions.map((s, i) => (
-              <div
+            {sessions.map((s) => (
+              <button
                 key={s.id}
-                className={`rounded-control px-3 py-2 text-xs ${
-                  i === 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                onClick={() => switchSession(s.id)}
+                className={`block w-full rounded-control px-3 py-2 text-left text-xs ${
+                  s.id === currentSessionId
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -43,8 +48,10 @@ export default function DesktopChat() {
                     {s.state}
                   </Badge>
                 </div>
-                <div className="mt-0.5 text-[10px] opacity-70">{s.messages} 則訊息</div>
-              </div>
+                <div className="mt-0.5 text-[10px] opacity-70">
+                  {s.messages} 則訊息{s.auto ? " · 自動分流開出" : ""}
+                </div>
+              </button>
             ))}
           </div>
         </aside>

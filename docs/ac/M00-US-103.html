@@ -36,6 +36,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>Given 一段 prompt When 經 IPC 交畀 sidecar Then 收到 streaming text delta 並即時轉發去 backend</li>
   <li>Given App 退出 / Mac 睡眠 When sidecar 收到 SIGTERM Then 正常 `session.dispose()`，唔留孤兒 process</li>
   <li>Given sidecar 崩潰 When supervisor 偵測到 Then 自動重啟（≤ 5 秒）並喺 App 顯示「Agent 已重啟」</li>
+  <li>Given 用戶發一句新訊息 When Agent 判斷話題 Then 同一話題續返原本 session；新話題開新 session 並自動命名（用戶唔使理）</li>
+  <li>Given 用戶想「帶住舊上文開新」 When 呼叫 fork 入口 Then 由現有 session 分岔出新 session，原本 session 唔受影響</li>
 </ol>
 <h2>Definition of Done</h2>
 <ul class="dod">
@@ -43,9 +45,9 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>dispose 後 `ps` 檢查無殘留 process</li>
 </ul>
 <h2>業務規則</h2>
-<div class="rules">session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）</div>
+<div class="rules">session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）；session 屬於一個 workspace（切 workspace = 換一組 session）；session 分流規則：同一話題續舊、新話題開新並自動命名；fork（帶上文開新）只係第二入口、預設唔開</div>
 <h2>依賴</h2>
-<div class="rules">Pi SDK（Node ≥ 20 或 Bun）、Tauri sidecar 機制</div>
+<div class="rules">Pi SDK（Node ≥ 20 或 Bun）、Tauri sidecar 機制（`newSession` / `switchSession` / `fork`）</div>
 <footer>
 對應 Backlog: docs/backlog.md ｜ 需求錨點: docs/req/M00-US-103-requirement.md
 <br>本檔由 dav-planner Step 4 生成（2026-11-01）；列印友好版。

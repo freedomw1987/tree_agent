@@ -19,6 +19,7 @@
 | **FR-M03-05** | Workspace 管理（選擇／切換／預設 `~/agent-workspace`、不存在時提示建立） | Given 揀新路徑 When 生效 Then session cwd 跟住變、檔案工具範圍同步更新 |
 | **FR-M03-06** | Sidecar ↔ Relay client（獨立憑證，唔用 App token） | Given sidecar 上線 Then 用自己身份取任務；App token 泄露唔影響 Agent 身份 |
 | **FR-M03-07** | 生命週期與保留期策略（Mac 睡眠／熄屏時 sidecar 點保持；session / audit log 保留期可配置） | Given Mac 進入睡眠 When 策略生效 Then 恢復後 sidecar 自動接返、session 唔損毀；保留期到期自動清理 |
+| **FR-M03-08** | 對話 session 自動分流（同一話題續舊／新話題開新＋自動命名）＋ fork 第二入口（帶上文開新） | Given 新訊息 When Agent 判斷話題 Then 續舊或開新並自動命名；用戶開新對話只靠按鈕，唔使逐次揀 session |
 
 ## 3. 依賴關係
 
@@ -47,3 +48,4 @@
 | FR-M03-05 Workspace 管理 | M00-US-103 | desktop-mac | /d/runtime | step-3 | ✅ 已原型 |
 | FR-M03-06 Sidecar 身份 | M00-US-104 | cli-terminal | /t/console | step-2 | ✅ 已原型 |
 | FR-M03-07 生命週期 / 保留期 | TECH-402 | desktop-mac | /d/runtime | — | ✅ 已原型 |
+| FR-M03-08 session 自動分流 | M00-US-103 | mobile-app | /m/chat | step-9 | ✅ 已原型 |

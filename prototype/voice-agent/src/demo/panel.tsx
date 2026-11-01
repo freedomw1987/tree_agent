@@ -52,7 +52,7 @@ export default function DemoPanel() {
               <div>
                 <div className="text-sm font-semibold">Demo 路線面板</div>
                 <div className="text-[11px] text-muted-foreground">
-                  8 步 · 跨 3 個 Surface · 同一個 mock store
+                  9 步 · 跨 3 個 Surface · 同一個 mock store
                 </div>
               </div>
               <button onClick={() => setOpen(false)} className="rounded-control p-1 text-muted-foreground hover:bg-muted">

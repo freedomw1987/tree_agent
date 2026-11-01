@@ -6,11 +6,13 @@
 
 - R1: 「2. 他會連住AWS 上一個lambda + pi sdk 去做agent runtime (但中間您可能要幫我想想架構是怎樣)。」
 - R2: 「Agent 跑喺你部 Mac，AWS 做中轉（推薦）」
+- R3: 「自動分流 ＋ 開新對話按鈕（推薦）」
 
 ## 澄清後驗收句
 
 - R1: agent runtime 用 pi SDK。
 - R2: 真正跑 pi SDK 嘅地方係 Mac；AWS 只做中轉。
+- R3: session 策略喺 runtime 層：Agent 自動判斷續／開新 ＋ 自動命名。
 
 ## 變更歷史
 

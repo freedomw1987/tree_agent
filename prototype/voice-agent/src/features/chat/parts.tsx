@@ -53,9 +53,12 @@ export function AgentStatusPill({ status }: { status: AgentStatus }) {
 export function MessageBubble({
   message,
   onPlay,
+  sessionTitle,
 }: {
   message: Message;
   onPlay?: () => void;
+  /** 當訊息屬於另一條 session 時顯示（跨 session 提醒） */
+  sessionTitle?: string;
 }) {
   const isUser = message.role === "user";
   return (
@@ -66,6 +69,11 @@ export function MessageBubble({
         </div>
       )}
       <div className={cn("max-w-[78%] space-y-1", isUser && "items-end")}>
+        {sessionTitle ? (
+          <div className={cn("text-[10px] text-muted-foreground", isUser && "text-right")}>
+            對話：{sessionTitle}
+          </div>
+        ) : null}
         <div
           className={cn(
             "rounded-panel px-3 py-2 text-[13px] leading-[1.45] shadow-card",

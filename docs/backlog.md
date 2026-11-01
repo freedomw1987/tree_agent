@@ -34,9 +34,9 @@
 | SPIKE-001 | Spike | M02 | AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-001.md) ｜ [html](ac/SPIKE-001.html) | P0 | 3 | PENDING | — |
 | SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | PENDING | — |
 | SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | PENDING | — |
-| M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 4 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
+| M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 6 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
 | M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 5 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
-| M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 4 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
+| M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 6 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | PENDING | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
 | M00-US-106 | US | M04 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
@@ -148,9 +148,9 @@
 - **對應 Module**: M01（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
-- **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html)
-- **業務規則**: App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中
-- **依賴**: Tauri 2、Rust core、AWS relay API（US-104）
+- **AC**: 6 條 Given-When-Then + DoD → [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html)
+- **業務規則**: App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中；對話 session 由 Agent 自動分流，App 只提供入口（session 抽屜 ＋ 開新對話）
+- **依賴**: Tauri 2、Rust core、AWS relay API（US-104）、M00-US-103（session 策略）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-101`
 - **為什麼這個優先**: P0：呢個係用戶唯一接觸面；冇佢，之後所有能力都驗收唔到。
 - **需求錨點**: [req/M00-US-101-requirement.md](req/M00-US-101-requirement.md)
@@ -172,9 +172,9 @@
 - **對應 Module**: M03（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
-- **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html)
-- **業務規則**: session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）
-- **依賴**: Pi SDK（Node ≥ 20 或 Bun）、Tauri sidecar 機制
+- **AC**: 6 條 Given-When-Then + DoD → [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html)
+- **業務規則**: session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）；session 屬於一個 workspace（切 workspace = 換一組 session）；session 分流規則：同一話題續舊、新話題開新並自動命名；fork（帶上文開新）只係第二入口、預設唔開
+- **依賴**: Pi SDK（Node ≥ 20 或 Bun）、Tauri sidecar 機制（`newSession` / `switchSession` / `fork`）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-103`
 - **為什麼這個優先**: P0：呢個係「真正執行」嘅落點 —— 冇佢，全部任務類 US 都做唔到。
 - **需求錨點**: [req/M00-US-103-requirement.md](req/M00-US-103-requirement.md)

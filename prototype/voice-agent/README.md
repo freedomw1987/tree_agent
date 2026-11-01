@@ -19,17 +19,17 @@ npm run shots      # 機械驗收 + 截圖到 docs/shots/
 
 | Route | Surface | 內容 |
 |---|---|---|
-| `/m/chat` `/m/stats` `/m/settings` | `mobile-app` | 對話（語音輸入、STT 草稿、確認卡、任務卡片）、每日任務數、設定 |
+| `/m/chat` `/m/stats` `/m/settings` | `mobile-app` | 對話（語音輸入、STT 草稿、確認卡、任務卡片、**session 抽屜 ＋ 開新對話**）、每日任務數、設定 |
 | `/d/chat` `/d/runtime` `/d/tools` `/d/stats` | `desktop-mac` | 對話（寬版）、Agent 狀態／Workspace／Session、audit log + Risk Gate 規則、統計 |
 | `/t/console` | `cli-terminal` | sidecar console：streaming、relay 送達紀錄、風險閘攔截記錄 |
 
 ## Demo 路線（右下「Demo 路線」面板）
 
-8 步、跨 3 個 Surface、共用同一個 mock store：
+9 步、跨 3 個 Surface、共用同一個 mock store：
 
 `step-1` 手機講嘢派任務 → `step-2` terminal 見到 sidecar 收到 → `step-3` 桌面 Agent 狀態 →
 `step-4` 手機收任務卡片 + 語音通知 → `step-5` 手機出確認卡 → `step-6` terminal 見到工具執行 →
-`step-7` 桌面 audit log → `step-8` 手機每日任務數
+`step-7` 桌面 audit log → `step-8` 手機每日任務數 → `step-9` 手機對話 session 抽屜（自動分流 ＋ 開新對話）
 
 面板另有：**五狀態切換器**（Happy / Loading / Empty / Error / Edge）、模擬 Agent 離線、重設資料。
 

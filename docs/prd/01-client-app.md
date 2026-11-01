@@ -22,6 +22,7 @@
 | **FR-M01-08** | 每日任務數統計（今日任務數 + 節省輸入時間 + 明細） | Given 今日有任務 When 睇統計 Then 顯示正確數字（同 request_id 只計一次）；明細表分頁（每頁 20 條），超過 200 條用虛擬捲動 |
 | **FR-M01-09** | 設定（登入 token、語音輸入開關、語音回覆開關、安靜模式、推播權限狀態） | Given 開關切換 When 離開頁面 Then 設定保留並生效 |
 | **FR-M01-10** | 五狀態（Loading / Empty / Error / Edge）對應元件 | 見 `docs/DESIGN.md` §8 M01 行 |
+| **FR-M01-12** | 對話 session 入口：Header 對話 chip（顯示當前 session）＋ 抽屜 Sheet（列出對話、標明當前、可切換、「開新對話」）；跨 session 訊息標明所屬對話 | Given 手機對話畫面 When 撳 chip Then 抽屜列出所有對話；開新後當前 session 即時切換、舊對話保留；跨 session 訊息有標記 |
 | **FR-M01-11** | Tauri mobile native plugin 層（STT / local TTS / push）——TECH-401 | Given 平台無內建能力 When 呼叫 plugin Then Rust 介面穩定、UI 層唔受平台細節影響 |
 
 ## 3. 依賴關係
@@ -55,6 +56,7 @@
 | FR-M01-09 設定 | M00-US-104 | mobile-app | /m/settings | — | ✅ 已原型 |
 | FR-M01-10 五狀態 | M00-US-102 | mobile-app | /m/chat | — | ✅ 已原型 |
 | FR-M01-11 native plugin 層 | TECH-401 | desktop-mac | /d/runtime | — | ✅ 已原型 |
+| FR-M01-12 對話 session 入口 | M00-US-101 | mobile-app | /m/chat | step-9 | ✅ 已原型 |
 | FR-M01-01 對話（寬版） | M00-US-101 | desktop-mac | /d/chat | — | ✅ 已原型 |
 | FR-M01-08 統計（大屏） | M00-US-132 | desktop-mac | /d/stats | — | ✅ 已原型 |
 | FR-M01-09 權限狀態 | M00-US-102 | desktop-mac | /d/runtime | — | ✅ 已原型 |

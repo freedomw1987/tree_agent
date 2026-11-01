@@ -36,6 +36,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>Given 已有對話紀錄 When 重新打開 App Then 見到上次 transcript（由 backend 拉，唔係本機 hardcode）</li>
   <li>Given 手機端同 macOS 端用同一帳戶 When 各自拉 transcript Then 兩邊見到同一份對話</li>
   <li>Given 輸入列有文字 When 撳「發送」Then 訊息即時出現在對話串並顯示「已送出」狀態（等 backend ack）</li>
+  <li>Given 手機端對話畫面 When 撳對話標題 chip / 「開新對話」Then 見到 session 抽屜（列出所有對話、標明當前、可切換）；開新後當前 session 即時切換，舊對話保留</li>
+  <li>Given 當前 session 同其他 session 都有訊息 When 喺當前 session 睇到跨 session 訊息 Then 該訊息標明所屬對話（唔會睇唔出邊段對話）</li>
 </ol>
 <h2>Definition of Done</h2>
 <ul class="dod">
@@ -43,9 +45,9 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>iOS/Android/macOS 三端各存一張截圖到 `docs/design/ui/`</li>
 </ul>
 <h2>業務規則</h2>
-<div class="rules">App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中</div>
+<div class="rules">App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中；對話 session 由 Agent 自動分流，App 只提供入口（session 抽屜 ＋ 開新對話）</div>
 <h2>依賴</h2>
-<div class="rules">Tauri 2、Rust core、AWS relay API（US-104）</div>
+<div class="rules">Tauri 2、Rust core、AWS relay API（US-104）、M00-US-103（session 策略）</div>
 <footer>
 對應 Backlog: docs/backlog.md ｜ 需求錨點: docs/req/M00-US-101-requirement.md
 <br>本檔由 dav-planner Step 4 生成（2026-11-01）；列印友好版。

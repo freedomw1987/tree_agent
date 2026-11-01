@@ -92,6 +92,7 @@ try {
     "#/t/console",
     "#/d/tools",
     "#/m/stats",
+    "#/m/chat",
   ];
 
   await clickByText("Demo 路線");
@@ -110,6 +111,19 @@ try {
     consoleText.includes("整理本週交付進度") || consoleText.includes("relay"),
     "跨 Surface 資料流：terminal 見到手機送出嘅任務",
   );
+
+  // 自動分流 + 開新對話
+  await page.goto(`${pathToFileURL(dist).href}#/m/chat`, { waitUntil: "networkidle0" });
+  await new Promise((r) => setTimeout(r, 400));
+  await clickByText("Demo 路線");
+  await clickByText("對話 session：自動分流");
+  await new Promise((r) => setTimeout(r, 400));
+  const sheetText = await page.evaluate(() => document.body.innerText);
+  check(sheetText.includes("開新對話"), "手機有 session 抽屜 + 開新對話入口");
+  await clickByText("開新對話");
+  await new Promise((r) => setTimeout(r, 400));
+  const afterNew = await page.evaluate(() => document.body.innerText);
+  check(afterNew.includes("新對話"), "開新對話成功（當前 session = 新對話）");
 
   await page.goto(`${pathToFileURL(dist).href}#/d/tools`, { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 300));
