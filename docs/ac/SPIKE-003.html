@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AC — SPIKE-003</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Sans TC", sans-serif; max-width: 880px; margin: 32px auto; padding: 0 20px; color: #16181d; line-height: 1.65; }
+h1 { font-size: 21px; border-bottom: 2px solid #16181d; padding-bottom: 8px; margin-bottom: 4px; }
+h2 { font-size: 15px; margin: 26px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: #4a4f5a; }
+.meta { color: #5b6270; font-size: 13px; margin: 8px 0 18px; }
+ol.ac { padding-left: 22px; }
+ol.ac li { margin-bottom: 10px; }
+ul.dod { list-style: none; padding-left: 0; }
+ul.dod li::before { content: "\2610 "; }
+code { background: #f1f2f4; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.rules { background: #f7f8fa; border-left: 3px solid #4a4f5a; padding: 10px 14px; font-size: 14px; white-space: pre-wrap; }
+footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; color: #6b7280; font-size: 12px; }
+@media print {
+  body { max-width: none; margin: 0; font-size: 10.5pt; }
+  h1 { font-size: 15pt; }
+  h2 { font-size: 11pt; }
+  ol.ac li, ul.dod li, .rules { page-break-inside: avoid; }
+  a[href]::after { content: ''; }
+  .no-print { display: none; }
+}
+</style>
+</head>
+<body>
+<h1>AC — SPIKE-003</h1>
+<p class="meta">類型 Spike ｜ 階段 0 架構補證 ｜ 優先級 P0 ｜ SP 3<br>驗收方式：真機收到 push + 鎖屏語音播放錄屏</p>
+<h2>Given-When-Then</h2>
+<ol class="ac">
+  <li>Given Tauri 2 mobile app When 註冊 APNs（iOS）/ FCM（Android）device token 並實作一次遠端 push Then 三端（iOS/Android/macOS）都收得到 push</li>
+  <li>Given 一段 Polly 生成嘅 mp3（&lt; 500KB）When 當作 push 附件送出（iOS notification service extension 拉取）Then 鎖屏狀態可以播放語音通知</li>
+  <li>Given APNs payload 大小限制 When 試唔同長度 mp3 Then 記錄可用上限 + 降級方案（長音頻改用 URL 拉取）</li>
+</ol>
+<h2>Definition of Done</h2>
+<ul class="dod">
+  <li>產出 `docs/spike/mobile-push.md`</li>
+  <li>確認 signing / 憑證管理流程（憑證唔可以入 repo）</li>
+</ul>
+<h2>業務規則</h2>
+<div class="rules">推播 payload 只准包含任務摘要，唔准塞完整 transcript</div>
+<h2>依賴</h2>
+<div class="rules">Apple Developer / Firebase 帳號、AWS Polly</div>
+<footer>
+對應 Backlog: docs/backlog.md ｜ 需求錨點: docs/req/SPIKE-003-requirement.md
+<br>本檔由 dav-planner Step 4 生成（2026-11-01）；列印友好版。
+</footer>
+</body>
+</html>

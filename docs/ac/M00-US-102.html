@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AC — M00-US-102</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Sans TC", sans-serif; max-width: 880px; margin: 32px auto; padding: 0 20px; color: #16181d; line-height: 1.65; }
+h1 { font-size: 21px; border-bottom: 2px solid #16181d; padding-bottom: 8px; margin-bottom: 4px; }
+h2 { font-size: 15px; margin: 26px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: #4a4f5a; }
+.meta { color: #5b6270; font-size: 13px; margin: 8px 0 18px; }
+ol.ac { padding-left: 22px; }
+ol.ac li { margin-bottom: 10px; }
+ul.dod { list-style: none; padding-left: 0; }
+ul.dod li::before { content: "\2610 "; }
+code { background: #f1f2f4; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.rules { background: #f7f8fa; border-left: 3px solid #4a4f5a; padding: 10px 14px; font-size: 14px; white-space: pre-wrap; }
+footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; color: #6b7280; font-size: 12px; }
+@media print {
+  body { max-width: none; margin: 0; font-size: 10.5pt; }
+  h1 { font-size: 15pt; }
+  h2 { font-size: 11pt; }
+  ol.ac li, ul.dod li, .rules { page-break-inside: avoid; }
+  a[href]::after { content: ''; }
+  .no-print { display: none; }
+}
+</style>
+</head>
+<body>
+<h1>AC — M00-US-102</h1>
+<p class="meta">類型 US ｜ 階段 ① 語音對話 loop ｜ 優先級 P0 ｜ SP 5<br>驗收方式：跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-102`</p>
+<h2>Given-When-Then</h2>
+<ol class="ac">
+  <li>Given 錄音鍵 When 按住講嘢再放開 Then 錄音期間見到 waveform / 計時，放開即時轉成可編輯文字（唔自動送出）</li>
+  <li>Given STT 轉出空文字或「聽唔清」When 顯示 Then 保留輸入內容並提示重錄，唔會送出空訊息</li>
+  <li>Given 一段 ≥ 60 秒錄音 When 達到上限 Then 自動停止並提示「太長，分段講」</li>
+  <li>Given 麥克風權限被拒 When 首次錄音 Then 顯示權限說明 + 導去系統設定（唔會 crash）</li>
+  <li>Given 錄音途中來電 / 藍牙耳機斷線 When 發生 Then 錄音安全中止，已錄內容保留並提示</li>
+</ol>
+<h2>Definition of Done</h2>
+<ul class="dod">
+  <li>探針 `M00-US-102-stt-empty-not-sent` 必通過</li>
+  <li>iOS / Android 真機各測 20 句粵語樣本並記錄結果</li>
+</ul>
+<h2>業務規則</h2>
+<div class="rules">STT 一律 device native（音頻唔上傳）；語言 zh-HK；STT 文字必須經用戶確認（可編輯）先送出</div>
+<h2>依賴</h2>
+<div class="rules">SPIKE-002 結論、Tauri mobile native plugin（TECH-401）</div>
+<footer>
+對應 Backlog: docs/backlog.md ｜ 需求錨點: docs/req/M00-US-102-requirement.md
+<br>本檔由 dav-planner Step 4 生成（2026-11-01）；列印友好版。
+</footer>
+</body>
+</html>

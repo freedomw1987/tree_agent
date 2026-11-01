@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AC — M00-US-101</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Sans TC", sans-serif; max-width: 880px; margin: 32px auto; padding: 0 20px; color: #16181d; line-height: 1.65; }
+h1 { font-size: 21px; border-bottom: 2px solid #16181d; padding-bottom: 8px; margin-bottom: 4px; }
+h2 { font-size: 15px; margin: 26px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: #4a4f5a; }
+.meta { color: #5b6270; font-size: 13px; margin: 8px 0 18px; }
+ol.ac { padding-left: 22px; }
+ol.ac li { margin-bottom: 10px; }
+ul.dod { list-style: none; padding-left: 0; }
+ul.dod li::before { content: "\2610 "; }
+code { background: #f1f2f4; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.rules { background: #f7f8fa; border-left: 3px solid #4a4f5a; padding: 10px 14px; font-size: 14px; white-space: pre-wrap; }
+footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; color: #6b7280; font-size: 12px; }
+@media print {
+  body { max-width: none; margin: 0; font-size: 10.5pt; }
+  h1 { font-size: 15pt; }
+  h2 { font-size: 11pt; }
+  ol.ac li, ul.dod li, .rules { page-break-inside: avoid; }
+  a[href]::after { content: ''; }
+  .no-print { display: none; }
+}
+</style>
+</head>
+<body>
+<h1>AC — M00-US-101</h1>
+<p class="meta">類型 US ｜ 階段 ① 語音對話 loop ｜ 優先級 P0 ｜ SP 5<br>驗收方式：跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-101`</p>
+<h2>Given-When-Then</h2>
+<ol class="ac">
+  <li>Given App（iOS / Android / macOS 任一）When 打開 Then 見到 WeChat 式對話介面（自己訊息靠右、Agent 訊息靠左、輸入列、錄音鍵、時間戳）</li>
+  <li>Given 已有對話紀錄 When 重新打開 App Then 見到上次 transcript（由 backend 拉，唔係本機 hardcode）</li>
+  <li>Given 手機端同 macOS 端用同一帳戶 When 各自拉 transcript Then 兩邊見到同一份對話</li>
+  <li>Given 輸入列有文字 When 撳「發送」Then 訊息即時出現在對話串並顯示「已送出」狀態（等 backend ack）</li>
+</ol>
+<h2>Definition of Done</h2>
+<ul class="dod">
+  <li>探針 `M00-US-101-chat-ui-renders-and-sends` 必通過</li>
+  <li>iOS/Android/macOS 三端各存一張截圖到 `docs/design/ui/`</li>
+</ul>
+<h2>業務規則</h2>
+<div class="rules">App 層只負責 view + 呼叫 API，唔准包含任何 Agent 邏輯；介面語言預設繁中</div>
+<h2>依賴</h2>
+<div class="rules">Tauri 2、Rust core、AWS relay API（US-104）</div>
+<footer>
+對應 Backlog: docs/backlog.md ｜ 需求錨點: docs/req/M00-US-101-requirement.md
+<br>本檔由 dav-planner Step 4 生成（2026-11-01）；列印友好版。
+</footer>
+</body>
+</html>

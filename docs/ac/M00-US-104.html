@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AC — M00-US-104</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Sans TC", sans-serif; max-width: 880px; margin: 32px auto; padding: 0 20px; color: #16181d; line-height: 1.65; }
+h1 { font-size: 21px; border-bottom: 2px solid #16181d; padding-bottom: 8px; margin-bottom: 4px; }
+h2 { font-size: 15px; margin: 26px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: #4a4f5a; }
+.meta { color: #5b6270; font-size: 13px; margin: 8px 0 18px; }
+ol.ac { padding-left: 22px; }
+ol.ac li { margin-bottom: 10px; }
+ul.dod { list-style: none; padding-left: 0; }
+ul.dod li::before { content: "\2610 "; }
+code { background: #f1f2f4; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.rules { background: #f7f8fa; border-left: 3px solid #4a4f5a; padding: 10px 14px; font-size: 14px; white-space: pre-wrap; }
+footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; color: #6b7280; font-size: 12px; }
+@media print {
+  body { max-width: none; margin: 0; font-size: 10.5pt; }
+  h1 { font-size: 15pt; }
+  h2 { font-size: 11pt; }
+  ol.ac li, ul.dod li, .rules { page-break-inside: avoid; }
+  a[href]::after { content: ''; }
+  .no-print { display: none; }
+}
+</style>
+</head>
+<body>
+<h1>AC — M00-US-104</h1>
+<p class="meta">類型 US ｜ 階段 ① 語音對話 loop ｜ 優先級 P0 ｜ SP 8<br>驗收方式：跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-104`</p>
+<h2>Given-When-Then</h2>
+<ol class="ac">
+  <li>Given App 有有效 token When 發送訊息（帶 `request_id`）Then Lambda 驗證 token → 訊息入 DynamoDB → relay 派發畀 Mac sidecar；App 收到 ack（≤ 2 秒）</li>
+  <li>Given 同一 `request_id` 因網絡重試送兩次 When 處理 Then 只執行一次（冪等），App 只見一條訊息</li>
+  <li>Given sidecar 完成任務 When 結果回傳 Then 寫入 DynamoDB（user_id / request_id / role / content / ts），App 拉 transcript 時見到</li>
+  <li>Given App 網絡中斷 When 恢復 Then 自動重連並補拉漏咗嘅訊息（唔漏訊息、唔重複顯示）</li>
+  <li>Given 無效 / 過期 token When 呼叫 API Then 回 401 + App 顯示「請重新登入」（唔係 5xx）</li>
+</ol>
+<h2>Definition of Done</h2>
+<ul class="dod">
+  <li>探針 `M00-US-104-relay-idempotent-and-persisted` 必通過</li>
+</ul>
+<h2>業務規則</h2>
+<div class="rules">transcript 存 DynamoDB（partition key = user_id）；每則訊息有 `request_id`（UUID）做冪等鍵；token 唔可以出現喺任何 log</div>
+<h2>依賴</h2>
+<div class="rules">SPIKE-001 結論、AWS（Lambda / DynamoDB / relay transport）、M00-US-103</div>
+<footer>
+對應 Backlog: docs/backlog.md ｜ 需求錨點: docs/req/M00-US-104-requirement.md
+<br>本檔由 dav-planner Step 4 生成（2026-11-01）；列印友好版。
+</footer>
+</body>
+</html>
