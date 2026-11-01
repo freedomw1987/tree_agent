@@ -53,6 +53,10 @@ run_step "lint: runtime/relay-api (tsc --noEmit)" \
 run_step "probe: runtime/relay-api (vitest run)" \
   bash -c "cd '$ROOT/runtime/relay-api' && npx vitest run --reporter=dot"
 
+# 2e. 探針（macOS Tauri 殼：Rust supervisor + IPC）
+run_step "probe: apps/tauri-mac (cargo test)" \
+  bash -c "cd '$ROOT/apps/tauri-mac/src-tauri' && cargo test --quiet 2>&1 | tail -3"
+
 # 3. 原型 smoke（demo 路線 + 跨 Surface 串連）
 run_step "probe: prototype/voice-agent (smoke)" \
   bash -c "cd '$ROOT/prototype/voice-agent' && node scripts/smoke.mjs"

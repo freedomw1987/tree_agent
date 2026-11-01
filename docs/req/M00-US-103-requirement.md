@@ -19,4 +19,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
-| 2026-11-01 | 實測結論回填 | 批次 1 已完成（Node/TS 層）：runtime/sidecar/ — session host（create/continue/open/list/fork/switch ＋ 自動分流 ＋ 自動命名 ＋ streaming chun… |
+| 2026-11-01 | 實測結論回填 | 批次 1 完成 ＋ macOS 殼接通：Node sidecar（session host／對話自動分流＋自動命名／stdio JSON lines IPC／崩潰自動重啟 ≤5 秒／單任務預算上限／真 Pi SDK 接線）＋ apps/ta… |

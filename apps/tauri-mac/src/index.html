@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Agent</title>
+    <style>
+      /* Design tokens（對齊 docs/DESIGN.md §4） */
+      :root {
+        --background: #fbfbfd;
+        --foreground: #16181d;
+        --card: #ffffff;
+        --muted: #f2f3f6;
+        --muted-foreground: #6b7280;
+        --primary: #2f6bff;
+        --primary-foreground: #ffffff;
+        --accent: #14b87a;
+        --warning: #f5a524;
+        --destructive: #e5484d;
+        --border: #e4e6eb;
+        --radius-card: 12px;
+        --radius-panel: 16px;
+        --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
+        --shadow-pop: 0 12px 40px rgba(16, 24, 40, 0.16);
+        --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang HK",
+          "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+        --font-mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        font-family: var(--font-sans);
+        background: var(--background);
+        color: var(--foreground);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      header {
+        height: 52px; flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+        padding: 0 16px; background: var(--card); border-bottom: 1px solid var(--border);
+      }
+      .title { font-size: 14px; font-weight: 600; }
+      .pill {
+        display: inline-flex; align-items: center; gap: 6px; border-radius: 999px;
+        padding: 2px 9px; font-size: 11px; font-weight: 500;
+      }
+      .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+      .pill.ready { background: rgba(20, 184, 122, 0.12); color: var(--accent); }
+      .pill.busy { background: rgba(47, 107, 255, 0.12); color: var(--primary); }
+      .pill.offline { background: rgba(245, 165, 36, 0.15); color: #8a5a00; }
+      .ws { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); }
+      main { flex: 1 1 auto; overflow: auto; padding: 20px 24px 120px; }
+      .wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+      .bubble { max-width: 78%; padding: 10px 14px; border-radius: var(--radius-panel); font-size: 13.5px; line-height: 1.5; box-shadow: var(--shadow-card); white-space: pre-wrap; }
+      .bubble.user { align-self: flex-end; background: var(--primary); color: var(--primary-foreground); border-bottom-right-radius: 4px; }
+      .bubble.agent { align-self: flex-start; background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+      .bubble.err { align-self: flex-start; background: rgba(229, 72, 77, 0.08); color: var(--destructive); border: 1px solid rgba(229, 72, 77, 0.3); }
+      .bubble.partial { align-self: flex-start; background: rgba(245, 165, 36, 0.12); color: #8a5a00; border: 1px solid rgba(245, 165, 36, 0.4); }
+      .meta { align-self: flex-end; font-size: 10px; color: var(--muted-foreground); }
+      .empty { text-align: center; color: var(--muted-foreground); font-size: 13px; padding-top: 60px; }
+      .inputbar {
+        position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 24px 16px;
+        background: rgba(251, 251, 253, 0.88); backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border);
+      }
+      .inputrow { max-width: 760px; margin: 0 auto; display: flex; align-items: flex-end; gap: 10px; }
+      textarea {
+        flex: 1; resize: none; max-height: 140px; min-height: 42px; padding: 11px 14px;
+        border: 1px solid var(--border); border-radius: var(--radius-card);
+        background: var(--card); font-family: inherit; font-size: 13.5px; color: var(--foreground);
+      }
+      textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.25); }
+      button {
+        height: 42px; min-width: 42px; padding: 0 16px; border-radius: var(--radius-card);
+        border: 1px solid transparent; background: var(--primary); color: var(--primary-foreground);
+        font-size: 13px; font-weight: 500; cursor: pointer;
+      }
+      button:disabled { opacity: 0.45; cursor: default; }
+      button.ghost { background: var(--muted); color: var(--foreground); }
+      .hint { max-width: 760px; margin: 6px auto 0; font-size: 10.5px; color: var(--muted-foreground); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="title">Voice Agent</span>
+      <span class="pill busy" id="status"><span class="dot"></span><span id="statusText">連接中…</span></span>
+      <span class="ws" id="workspace"></span>
+    </header>
+
+    <main>
+      <div class="wrap" id="stream">
+        <div class="empty" id="empty">
+          仲未傾過偈。<br />喺下面輸入，或者講「幫我寫封 email 俾客戶」。
+        </div>
+      </div>
+    </main>
+
+    <div class="inputbar">
+      <div class="inputrow">
+        <textarea id="input" rows="1" placeholder="輸入任務…（⌘↩ 傳送）"></textarea>
+        <button id="send">傳送</button>
+      </div>
+      <div class="hint">⌘↩ 傳送 ｜ Agent 喺你部 Mac 上面跑（Pi SDK）｜ sidecar 崩潰會自動重啟（≤ 5 秒）</div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const tauri = window.__TAURI__;
+      const stream = $("stream");
+      let agentBubble = null;
+      let hasMessages = false;
+
+      function setStatus(kind, text) {
+        const pill = $("status");
+        pill.className = "pill " + kind;
+        $("statusText").textContent = text;
+      }
+
+      function addBubble(kind, text) {
+        $("empty").style.display = "none";
+        const div = document.createElement("div");
+        div.className = "bubble " + kind;
+        div.textContent = text;
+        stream.appendChild(div);
+        stream.scrollTop = stream.scrollHeight;
+        return div;
+      }
+
+      function setAgentText(text) {
+        if (!agentBubble) agentBubble = addBubble("agent", "");
+        agentBubble.textContent = text;
+        stream.scrollTop = stream.scrollHeight;
+      }
+
+      async function send() {
+        const input = $("input");
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        addBubble("user", text);
+        agentBubble = null;
+        setStatus("busy", "Agent 做緊…");
+        try {
+          await tauri.invoke("agent_prompt", { text });
+        } catch (e) {
+          addBubble("err", "派任務失敗：" + e);
+          setStatus("offline", "Agent 離線");
+        }
+      }
+
+      $("send").addEventListener("click", send);
+      $("input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send();
+      });
+
+      tauri.event.listen("sidecar-event", (e) => {
+        const ev = e.payload;
+        switch (ev.type) {
+          case "ready":
+            setStatus("ready", "Agent 已就緒");
+            if (ev.session_title) setStatus("ready", "Agent 已就緒 · " + ev.session_title);
+            if (ev.workspace) $("workspace").textContent = ev.workspace;
+            break;
+          case "chunk":
+            setAgentText((agentBubble ? agentBubble.textContent : "") + (ev.text || ""));
+            break;
+          case "done":
+            setAgentText(ev.text || (agentBubble ? agentBubble.textContent : ""));
+            agentBubble = null;
+            setStatus("ready", "Agent 已就緒");
+            break;
+          case "partial":
+            addBubble("partial", "任務被中止：" + (ev.message || "超預算") + (ev.text ? "\n\n" + ev.text : ""));
+            agentBubble = null;
+            setStatus("ready", "Agent 已就緒");
+            break;
+          case "error":
+            addBubble("err", ev.message || "sidecar 錯誤");
+            agentBubble = null;
+            setStatus("offline", "Agent 離線");
+            break;
+          case "restarted":
+            setStatus("busy", "Agent 已重啟（第 " + ev.attempt + " 次）");
+            break;
+        }
+      });
+
+      tauri.invoke("agent_status").catch(() => setStatus("offline", "Agent 離線"));
+    </script>
+  </body>
+</html>
