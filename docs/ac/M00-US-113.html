@@ -41,6 +41,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
 <ul class="dod">
   <li>探針 `M00-US-113-confirm-expiry-cancels-op` 必通過</li>
 </ul>
+<h2>實測結論</h2>
+<div class="rules">確認流程代碼完成：sidecar 出 confirm_request（工具名／風險級別／預覽／過期時間）→ Rust 轉 Tauri event → macOS 前端出確認卡（預覽 + 確認/取消 + 5 分鐘倒數提示）→ agent_confirm command 回 sidecar。**語音 confirm**：確認卡喺度時輸入「confirm / 確認 / ok / 好 / yes / 批准」即批；「cancel / 取消 / no」即拒；只作用於當前未過期嘅卡。探針 10（TS 生命週期）+ 1（Rust 解析 confirm_request）。**未做**：iOS/Android 版確認卡 UI（批次 3）；真實工具觸發嘅端到端畫面（M05 之後）</div>
 <h2>業務規則</h2>
 <div class="rules">確認卡 5 分鐘有效；同一時間只准一張卡；「取消」係最終拒絕（唔自動重試）</div>
 <h2>依賴</h2>

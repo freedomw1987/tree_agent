@@ -17,7 +17,10 @@ export type RequestType =
   | "shutdown"
   | "switch_session"
   | "fork"
-  | "new_session";
+  | "new_session"
+  | "confirm_response"
+  | "list_tools"
+  | "audit_log";
 
 export interface Request {
   type: RequestType;
@@ -29,9 +32,20 @@ export interface Request {
   sessionId?: string;
   /** 新 session 名（可選，冇就自動命名） */
   title?: string;
+  /** confirm_response：批唔批（id = 確認卡 id） */
+  approved?: boolean;
+  /** confirm_response：確認卡 id */
+  confirmId?: string;
 }
 
-export type MessageType = "ready" | "chunk" | "done" | "partial" | "error" | "log";
+export type MessageType =
+  | "ready"
+  | "chunk"
+  | "done"
+  | "partial"
+  | "error"
+  | "log"
+  | "confirm_request";
 
 export interface Message {
   type: MessageType;
@@ -48,6 +62,16 @@ export interface Message {
   workspace?: string;
   /** log：sidecar 內部事件（relay 送達、工具調用…） */
   event?: string;
+  /** confirm_request：要前端出確認卡 */
+  toolName?: string;
+  toolLabel?: string;
+  riskLevel?: "read_only" | "write" | "external_effect";
+  /** 確認卡預覽（diff / payload） */
+  preview?: string;
+  /** 確認卡過期時間（epoch ms） */
+  expiresAt?: number;
+  /** 任意結構化資料（工具清單 / audit log 等） */
+  data?: unknown;
 }
 
 export class ProtocolError extends Error {
@@ -79,6 +103,9 @@ export function parseRequest(line: string): Request {
     "switch_session",
     "fork",
     "new_session",
+    "confirm_response",
+    "list_tools",
+    "audit_log",
   ];
   if (typeof type !== "string" || !valid.includes(type as RequestType)) {
     throw new ProtocolError(`未知 request type：${String(type)}`);

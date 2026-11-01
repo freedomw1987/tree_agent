@@ -17,3 +17,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
+| 2026-11-01 | 實測結論回填 | M04 工具治理核心已完成（runtime/sidecar/src/tools/）：工具註冊表（**冇 riskLevel 唔准註冊**、重複名拒絕）＋ 統一執行入口（read_only 自動跑；write / external_effec… |

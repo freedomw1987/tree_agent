@@ -40,9 +40,9 @@
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | 等待校驗 | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
 | M00-US-106 | US | M04 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
-| M00-US-111 | US | M02-M04 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | PENDING | M00-US-103 |
+| M00-US-111 | US | M02-M04 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | 等待校驗 | M00-US-103 |
 | M00-US-112 | US | M05 | 外部服務工具接入（首個 target 待定：GitHub / Gmail / Notion） | 4 條 BDD + DoD ｜ [md](ac/M00-US-112.md) ｜ [html](ac/M00-US-112.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113 |
-| M00-US-113 | US | M01-M04 | 高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期） | 4 條 BDD + DoD ｜ [md](ac/M00-US-113.md) ｜ [html](ac/M00-US-113.html) | P0 | 5 | PENDING | M00-US-111, M00-US-102 |
+| M00-US-113 | US | M01-M04 | 高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期） | 4 條 BDD + DoD ｜ [md](ac/M00-US-113.md) ｜ [html](ac/M00-US-113.html) | P0 | 5 | 等待校驗 | M00-US-111, M00-US-102 |
 | M00-US-121 | US | M05 | Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace） | 4 條 BDD + DoD ｜ [md](ac/M00-US-121.md) ｜ [html](ac/M00-US-121.html) | P1 | 5 | PENDING | M00-US-111, M00-US-113, M00-US-103 |
 | M00-US-122 | US | M05 | Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷） | 4 條 BDD + DoD ｜ [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113, M00-US-121 |
 | M00-US-131 | US | M01-M02 | 完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽） | 4 條 BDD + DoD ｜ [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html) | P0 | 5 | PENDING | SPIKE-003, M00-US-104, M00-US-105 |
@@ -231,6 +231,7 @@
 - **業務規則**: 風險級別只有 3 檔；`write` / `external_effect` 必須先確認；每次工具調用都寫 audit log（tool / args 摘要 / 結果 / ts）；AuthProvider 唔准滲入 App 層
 - **依賴**: M00-US-103
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-111`
+- **實測結論**: M04 工具治理核心已完成（runtime/sidecar/src/tools/）：工具註冊表（**冇 riskLevel 唔准註冊**、重複名拒絕）＋ 統一執行入口（read_only 自動跑；write / external_effect 產生確認卡先跑）＋ 確認生命週期（approved / cancelled / expired，5 分鐘 TTL）＋ audit log（工具／風險級別／參數摘要／結果／時間；參數只記 key 摘要，唔記全文避免敏感內容入 log）＋ 語音 confirm 解析。IPC 已接上（confirm_request 出／confirm_response 回、list_tools、audit_log）。探針 10（TS）。**未做**：Pi SDK 內建工具（read/bash/edit/write）仲未經風險閘（M05 第一個真工具會經 pi.registerTool 掛入去）
 - **為什麼這個優先**: P0：風險閘係「Agent 做錯事造成真實損失」呢個最大威脅嘅唯一防線，亦係將來開放寫入能力嘅前提。
 - **需求錨點**: [req/M00-US-111-requirement.md](req/M00-US-111-requirement.md)
 
@@ -255,6 +256,7 @@
 - **業務規則**: 確認卡 5 分鐘有效；同一時間只准一張卡；「取消」係最終拒絕（唔自動重試）
 - **依賴**: M00-US-111、M00-US-102
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-113`
+- **實測結論**: 確認流程代碼完成：sidecar 出 confirm_request（工具名／風險級別／預覽／過期時間）→ Rust 轉 Tauri event → macOS 前端出確認卡（預覽 + 確認/取消 + 5 分鐘倒數提示）→ agent_confirm command 回 sidecar。**語音 confirm**：確認卡喺度時輸入「confirm / 確認 / ok / 好 / yes / 批准」即批；「cancel / 取消 / no」即拒；只作用於當前未過期嘅卡。探針 10（TS 生命週期）+ 1（Rust 解析 confirm_request）。**未做**：iOS/Android 版確認卡 UI（批次 3）；真實工具觸發嘅端到端畫面（M05 之後）
 - **為什麼這個優先**: P0：冇確認機制就唔敢開任何 write 類工具，第二、三階段能力全部封死喺度。
 - **需求錨點**: [req/M00-US-113-requirement.md](req/M00-US-113-requirement.md)
 

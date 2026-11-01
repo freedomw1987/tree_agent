@@ -32,6 +32,15 @@ pub enum SidecarEvent {
         id: Option<String>,
         message: String,
     },
+    /// M04 確認卡：要前端問用戶批唔批（5 分鐘有效）
+    ConfirmRequest {
+        id: Option<String>,
+        tool_name: Option<String>,
+        tool_label: Option<String>,
+        risk_level: Option<String>,
+        preview: Option<String>,
+        expires_at: Option<u64>,
+    },
     /// sidecar 崩潰 → 已重啟
     Restarted { attempt: u32 },
     Stopped,
@@ -67,6 +76,14 @@ fn parse_line(line: &str) -> Option<SidecarEvent> {
                 .and_then(|x| x.as_str())
                 .unwrap_or("sidecar 錯誤")
                 .to_string(),
+        }),
+        "confirm_request" => Some(SidecarEvent::ConfirmRequest {
+            id,
+            tool_name: v.get("toolName").and_then(|x| x.as_str()).map(|s| s.to_string()),
+            tool_label: v.get("toolLabel").and_then(|x| x.as_str()).map(|s| s.to_string()),
+            risk_level: v.get("riskLevel").and_then(|x| x.as_str()).map(|s| s.to_string()),
+            preview: v.get("preview").and_then(|x| x.as_str()).map(|s| s.to_string()),
+            expires_at: v.get("expiresAt").and_then(|x| x.as_u64()),
         }),
         _ => None,
     }
@@ -204,6 +221,32 @@ mod tests {
             .stdout(Stdio::null())
             .status()
             .is_ok()
+    }
+
+    #[test]
+    fn parses_confirm_request_event() {
+        let v: Value = serde_json::from_str(
+            r#"{"type":"confirm_request","id":"cf-1","toolName":"fs.write","toolLabel":"寫檔案","riskLevel":"write","preview":"+ 1 行","expiresAt":123}"#,
+        )
+        .unwrap();
+        match parse_line(&v.to_string()) {
+            Some(SidecarEvent::ConfirmRequest {
+                id,
+                tool_name,
+                tool_label,
+                risk_level,
+                preview,
+                expires_at,
+            }) => {
+                assert_eq!(id.as_deref(), Some("cf-1"));
+                assert_eq!(tool_name.as_deref(), Some("fs.write"));
+                assert_eq!(tool_label.as_deref(), Some("寫檔案"));
+                assert_eq!(risk_level.as_deref(), Some("write"));
+                assert_eq!(preview.as_deref(), Some("+ 1 行"));
+                assert_eq!(expires_at, Some(123));
+            }
+            other => panic!("應該係 ConfirmRequest，實際係 {:?}", other),
+        }
     }
 
     #[test]

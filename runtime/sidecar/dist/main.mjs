@@ -30,7 +30,10 @@ function parseRequest(line) {
     "shutdown",
     "switch_session",
     "fork",
-    "new_session"
+    "new_session",
+    "confirm_response",
+    "list_tools",
+    "audit_log"
   ];
   if (typeof type !== "string" || !valid.includes(type)) {
     throw new ProtocolError(`\u672A\u77E5 request type\uFF1A${String(type)}`);
@@ -349,6 +352,149 @@ function createPiFactory(options) {
   };
 }
 
+// src/tools/audit-log.ts
+var AuditLog = class {
+  entries = [];
+  maxEntries;
+  now;
+  seq = 0;
+  constructor(opts = {}) {
+    this.maxEntries = opts.maxEntries ?? 500;
+    this.now = opts.now ?? (() => Date.now());
+  }
+  log(input) {
+    this.seq += 1;
+    const entry = {
+      id: `audit-${this.seq}`,
+      ts: this.now(),
+      tool: input.tool,
+      riskLevel: input.riskLevel,
+      argsDigest: digest(input.args),
+      outcome: input.outcome,
+      resultDigest: digest(input.result)
+    };
+    this.entries.push(entry);
+    if (this.entries.length > this.maxEntries) this.entries.shift();
+    return entry;
+  }
+  list(limit = 50) {
+    return this.entries.slice(-limit).reverse();
+  }
+  all() {
+    return [...this.entries];
+  }
+  count() {
+    return this.entries.length;
+  }
+};
+function digest(value) {
+  if (value === void 0 || value === null) return "";
+  if (typeof value === "string") return value.slice(0, 120);
+  if (typeof value !== "object") return String(value);
+  const keys = Object.keys(value);
+  return `{${keys.slice(0, 8).join(", ")}${keys.length > 8 ? ", \u2026" : ""}}`;
+}
+
+// src/tools/confirm.ts
+var CONFIRM_TTL_MS = 5 * 60 * 1e3;
+var ConfirmStore = class {
+  constructor(ttlMs = CONFIRM_TTL_MS) {
+    this.ttlMs = ttlMs;
+  }
+  pending = /* @__PURE__ */ new Map();
+  /** 產生一張確認卡並等結果 */
+  request(input) {
+    if (this.pending.has(input.id)) {
+      return {
+        request: this.pending.get(input.id).request,
+        promise: Promise.resolve({ kind: "cancelled" })
+      };
+    }
+    const request = {
+      ...input,
+      expiresAt: Date.now() + this.ttlMs
+    };
+    const promise = new Promise((resolve) => {
+      this.pending.set(input.id, { request, resolve });
+      const timer = setTimeout(() => {
+        this.expire(input.id);
+      }, this.ttlMs);
+      timer.unref?.();
+    });
+    return { request, promise };
+  }
+  /** 用戶確認（可以由語音「confirm」觸發） */
+  approve(id) {
+    const entry = this.pending.get(id);
+    if (!entry) return false;
+    this.pending.delete(id);
+    entry.resolve({ kind: "approved" });
+    return true;
+  }
+  /** 用戶取消 */
+  cancel(id) {
+    const entry = this.pending.get(id);
+    if (!entry) return false;
+    this.pending.delete(id);
+    entry.resolve({ kind: "cancelled" });
+    return true;
+  }
+  /** 過期 */
+  expire(id) {
+    const entry = this.pending.get(id);
+    if (!entry) return false;
+    this.pending.delete(id);
+    entry.resolve({ kind: "expired" });
+    return true;
+  }
+  isPending(id) {
+    return this.pending.has(id);
+  }
+  pendingCount() {
+    return this.pending.size;
+  }
+  list() {
+    return [...this.pending.values()].map((p) => p.request);
+  }
+};
+
+// src/tools/registry.ts
+var ToolRegistry = class {
+  tools = /* @__PURE__ */ new Map();
+  register(tool) {
+    if (!tool.name) throw new Error("\u5DE5\u5177\u5FC5\u9808\u6709 name");
+    if (!tool.riskLevel) {
+      throw new Error(
+        `\u5DE5\u5177 ${tool.name} \u5187 riskLevel \u2014\u2014 \u5FC5\u9808\u6A19\u660E\u4FC2 read_only / write / external_effect \u5148\u53EF\u4EE5\u8A3B\u518A`
+      );
+    }
+    if (!isRiskLevel(tool.riskLevel)) {
+      throw new Error(
+        `\u5DE5\u5177 ${tool.name} \u5605 riskLevel \u5514\u5571\uFF1A${String(tool.riskLevel)}\uFF08\u53EA\u51C6 read_only / write / external_effect\uFF09`
+      );
+    }
+    if (this.tools.has(tool.name)) {
+      throw new Error(`\u5DE5\u5177\u540D\u91CD\u8907\uFF1A${tool.name}`);
+    }
+    this.tools.set(tool.name, tool);
+  }
+  get(name) {
+    return this.tools.get(name);
+  }
+  list() {
+    return [...this.tools.values()];
+  }
+  /** 風險級別分佈（用嚟喺 audit / UI 顯示） */
+  byRisk() {
+    const out = { read_only: 0, write: 0, external_effect: 0 };
+    for (const t of this.tools.values()) out[t.riskLevel] += 1;
+    return out;
+  }
+};
+function isRiskLevel(v) {
+  return v === "read_only" || v === "write" || v === "external_effect";
+}
+
 // src/main.ts
 function arg(name, fallback) {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -361,6 +507,9 @@ var host = new SessionHost({
   // 單任務預算（US-141）：超時／超 token → abort → partial → 通知
   budget: defaultBudgetFromEnv()
 });
+var registry = new ToolRegistry();
+var confirms = new ConfirmStore();
+var audit = new AuditLog();
 host.onMessage((m) => {
   process.stdout.write(`${serializeMessage(m)}
 `);
@@ -401,6 +550,46 @@ rl.on("line", async (line) => {
     case "new_session":
       await host.fork(req.id);
       break;
+    case "list_tools": {
+      process.stdout.write(
+        `${serializeMessage({
+          type: "log",
+          id: req.id,
+          event: "tools",
+          data: registry.list().map((t) => ({
+            name: t.name,
+            label: t.label,
+            riskLevel: t.riskLevel
+          }))
+        })}
+`
+      );
+      break;
+    }
+    case "audit_log": {
+      process.stdout.write(
+        `${serializeMessage({
+          type: "log",
+          id: req.id,
+          event: "audit",
+          data: audit.list(100)
+        })}
+`
+      );
+      break;
+    }
+    case "confirm_response": {
+      const confirmId = req.confirmId ?? req.id;
+      if (!confirmId) break;
+      const ok = req.approved === true ? confirms.approve(confirmId) : confirms.cancel(confirmId);
+      if (!ok) {
+        process.stdout.write(
+          `${serializeMessage({ type: "error", id: req.id, message: "\u6435\u5514\u5230\u55F0\u5F35\u78BA\u8A8D\u5361\uFF08\u53EF\u80FD\u5DF2\u904E\u671F\uFF09" })}
+`
+        );
+      }
+      break;
+    }
     case "shutdown":
       await host.dispose();
       rl.close();

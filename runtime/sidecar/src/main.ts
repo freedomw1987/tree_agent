@@ -10,6 +10,9 @@ import { parseRequest, serializeMessage } from "./protocol";
 import { SessionHost } from "./session-host";
 import { createPiFactory } from "./pi-factory";
 import { defaultBudgetFromEnv } from "./budget-guard";
+import { AuditLog } from "./tools/audit-log";
+import { ConfirmStore } from "./tools/confirm";
+import { ToolRegistry } from "./tools/registry";
 
 function arg(name: string, fallback: string): string {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -23,6 +26,11 @@ const host = new SessionHost({
   // 單任務預算（US-141）：超時／超 token → abort → partial → 通知
   budget: defaultBudgetFromEnv(),
 });
+
+// M04 工具治理層（風險閘 ＋ 確認 ＋ audit log）
+const registry = new ToolRegistry();
+const confirms = new ConfirmStore();
+const audit = new AuditLog();
 
 host.onMessage((m) => {
   process.stdout.write(`${serializeMessage(m)}\n`);
@@ -64,6 +72,44 @@ rl.on("line", async (line) => {
     case "new_session":
       await host.fork(req.id);
       break;
+    case "list_tools": {
+      process.stdout.write(
+        `${serializeMessage({
+          type: "log",
+          id: req.id,
+          event: "tools",
+          data: registry.list().map((t) => ({
+            name: t.name,
+            label: t.label,
+            riskLevel: t.riskLevel,
+          })),
+        })}\n`,
+      );
+      break;
+    }
+    case "audit_log": {
+      process.stdout.write(
+        `${serializeMessage({
+          type: "log",
+          id: req.id,
+          event: "audit",
+          data: audit.list(100),
+        })}\n`,
+      );
+      break;
+    }
+    case "confirm_response": {
+      // 前端回覆確認卡（撳「確認」／語音講「confirm」都會走到呢度）
+      const confirmId = req.confirmId ?? req.id;
+      if (!confirmId) break;
+      const ok = req.approved === true ? confirms.approve(confirmId) : confirms.cancel(confirmId);
+      if (!ok) {
+        process.stdout.write(
+          `${serializeMessage({ type: "error", id: req.id, message: "搵唔到嗰張確認卡（可能已過期）" })}\n`,
+        );
+      }
+      break;
+    }
     case "shutdown":
       await host.dispose();
       rl.close();

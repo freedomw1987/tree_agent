@@ -57,6 +57,19 @@
       .bubble.agent { align-self: flex-start; background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
       .bubble.err { align-self: flex-start; background: rgba(229, 72, 77, 0.08); color: var(--destructive); border: 1px solid rgba(229, 72, 77, 0.3); }
       .bubble.partial { align-self: flex-start; background: rgba(245, 165, 36, 0.12); color: #8a5a00; border: 1px solid rgba(245, 165, 36, 0.4); }
+      /* M04 確認卡（風險閘） */
+      .confirm-card { align-self: stretch; background: var(--card); border: 1px solid rgba(245, 165, 36, 0.45);
+        border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+      .confirm-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+      .risk-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+      .risk-write { color: #8a5a00; border-color: rgba(245, 165, 36, 0.6); background: rgba(245, 165, 36, 0.12); }
+      .risk-external_effect { color: var(--destructive); border-color: rgba(229, 72, 77, 0.5); background: rgba(229, 72, 77, 0.1); }
+      .confirm-preview { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5;
+        white-space: pre-wrap; max-height: 220px; overflow: auto; background: rgba(0,0,0,0.25);
+        border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+      .confirm-actions { display: flex; gap: 10px; align-items: center; }
+      .confirm-actions button { flex: 0 0 auto; }
+      .confirm-hint { font-size: 12px; color: var(--muted-foreground); }
       .meta { align-self: flex-end; font-size: 10px; color: var(--muted-foreground); }
       .empty { text-align: center; color: var(--muted-foreground); font-size: 13px; padding-top: 60px; }
       .inputbar {
@@ -127,6 +140,60 @@
         return div;
       }
 
+      // ── M04 確認卡 ────────────────────────────────────────────
+      let pendingConfirm = null;   // { id, resolve }
+
+      function showConfirm(ev) {
+        pendingConfirm = { id: ev.id };
+        $("empty").style.display = "none";
+        const card = document.createElement("div");
+        card.className = "confirm-card";
+        card.id = "confirm-card";
+
+        const risk = ev.risk_level || "write";
+        const label = risk === "external_effect" ? "外部影響" : "會改動";
+        const head = document.createElement("div");
+        head.className = "confirm-head";
+        head.innerHTML =
+          '<span class="risk-badge risk-' + risk + '">' + label + "</span>" +
+          "<strong>" + (ev.tool_label || ev.tool_name || "工具") + "</strong>";
+
+        const preview = document.createElement("div");
+        preview.className = "confirm-preview";
+        preview.textContent = ev.preview || "（冇預覽內容）";
+
+        const actions = document.createElement("div");
+        actions.className = "confirm-actions";
+        const ok = document.createElement("button");
+        ok.textContent = "確認執行";
+        ok.onclick = () => respondConfirm(true);
+        const no = document.createElement("button");
+        no.textContent = "取消";
+        no.onclick = () => respondConfirm(false);
+        const hint = document.createElement("span");
+        hint.className = "confirm-hint";
+        hint.textContent = "5 分鐘內有效 · 可以直接講「confirm」批";
+        actions.append(ok, no, hint);
+
+        card.append(head, preview, actions);
+        stream.appendChild(card);
+        stream.scrollTop = stream.scrollHeight;
+      }
+
+      async function respondConfirm(approved) {
+        if (!pendingConfirm) return;
+        const id = pendingConfirm.id;
+        pendingConfirm = null;
+        const card = document.getElementById("confirm-card");
+        if (card) card.remove();
+        try {
+          await tauri.invoke("agent_confirm", { confirmId: id, approved: approved });
+          setStatus("busy", "繼續執行…");
+        } catch (e) {
+          addBubble("err", "回覆確認失敗：" + e);
+        }
+      }
+
       function setAgentText(text) {
         if (!agentBubble) agentBubble = addBubble("agent", "");
         agentBubble.textContent = text;
@@ -137,6 +204,20 @@
         const input = $("input");
         const text = input.value.trim();
         if (!text) return;
+        // M04：確認卡喺度嘅時候，直接講「confirm」／「確認」就係批；講「取消」就係唔批
+        if (pendingConfirm) {
+          const t = text.toLowerCase().replace(/[。！!,.，]/g, "");
+          if (["confirm", "確認", "ok", "好", "yes", "批准"].some((w) => t === w || t.startsWith(w))) {
+            input.value = "";
+            await respondConfirm(true);
+            return;
+          }
+          if (["cancel", "取消", "no", "唔好", "唔使"].some((w) => t === w || t.startsWith(w))) {
+            input.value = "";
+            await respondConfirm(false);
+            return;
+          }
+        }
         input.value = "";
         addBubble("user", text);
         agentBubble = null;
@@ -179,6 +260,10 @@
             addBubble("err", ev.message || "sidecar 錯誤");
             agentBubble = null;
             setStatus("offline", "Agent 離線");
+            break;
+          case "confirm_request":
+            showConfirm(ev);
+            setStatus("busy", "等你批核工具調用");
             break;
           case "restarted":
             setStatus("busy", "Agent 已重啟（第 " + ev.attempt + " 次）");

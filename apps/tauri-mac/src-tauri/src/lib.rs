@@ -77,6 +77,24 @@ fn agent_prompt(
     Ok(json!({"requestId": id}))
 }
 
+/// M04：回覆確認卡（批／唔批）
+#[tauri::command]
+fn agent_confirm(
+    state: State<'_, Arc<AppState>>,
+    confirm_id: String,
+    approved: bool,
+) -> Result<serde_json::Value, String> {
+    state
+        .sidecar
+        .send(&json!({
+            "type": "confirm_response",
+            "confirmId": confirm_id,
+            "approved": approved,
+        }))
+        .map_err(|e| e.to_string())?;
+    Ok(json!({"ok": true}))
+}
+
 #[tauri::command]
 fn agent_shutdown(state: State<'_, Arc<AppState>>) -> Result<(), String> {
     state.sidecar.stop();
@@ -145,7 +163,12 @@ pub fn run() {
             spawn_event_pump(app.handle().clone(), events);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![agent_status, agent_prompt, agent_shutdown])
+        .invoke_handler(tauri::generate_handler![
+            agent_status,
+            agent_prompt,
+            agent_confirm,
+            agent_shutdown
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -42,6 +42,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>探針 `M00-US-111-risk-level-blocks-write-without-confirm` 必通過</li>
   <li>探針 `M00-US-111-authprovider-swappable` 必通過</li>
 </ul>
+<h2>實測結論</h2>
+<div class="rules">M04 工具治理核心已完成（runtime/sidecar/src/tools/）：工具註冊表（**冇 riskLevel 唔准註冊**、重複名拒絕）＋ 統一執行入口（read_only 自動跑；write / external_effect 產生確認卡先跑）＋ 確認生命週期（approved / cancelled / expired，5 分鐘 TTL）＋ audit log（工具／風險級別／參數摘要／結果／時間；參數只記 key 摘要，唔記全文避免敏感內容入 log）＋ 語音 confirm 解析。IPC 已接上（confirm_request 出／confirm_response 回、list_tools、audit_log）。探針 10（TS）。**未做**：Pi SDK 內建工具（read/bash/edit/write）仲未經風險閘（M05 第一個真工具會經 pi.registerTool 掛入去）</div>
 <h2>業務規則</h2>
 <div class="rules">風險級別只有 3 檔；`write` / `external_effect` 必須先確認；每次工具調用都寫 audit log（tool / args 摘要 / 結果 / ts）；AuthProvider 唔准滲入 App 層</div>
 <h2>依賴</h2>

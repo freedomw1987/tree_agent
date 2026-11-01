@@ -349,6 +349,9 @@ const items = [
     id: "M00-US-111",
     type: "US",
     module: "M02-M04",
+    status: "等待校驗",
+    conclusion:
+      "M04 工具治理核心已完成（runtime/sidecar/src/tools/）：工具註冊表（**冇 riskLevel 唔准註冊**、重複名拒絕）＋ 統一執行入口（read_only 自動跑；write / external_effect 產生確認卡先跑）＋ 確認生命週期（approved / cancelled / expired，5 分鐘 TTL）＋ audit log（工具／風險級別／參數摘要／結果／時間；參數只記 key 摘要，唔記全文避免敏感內容入 log）＋ 語音 confirm 解析。IPC 已接上（confirm_request 出／confirm_response 回、list_tools、audit_log）。探針 10（TS）。**未做**：Pi SDK 內建工具（read/bash/edit/write）仲未經風險閘（M05 第一個真工具會經 pi.registerTool 掛入去）",
     title: "工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證",
     phase: "② 外部服務",
     priority: "P0",
@@ -410,6 +413,9 @@ const items = [
     id: "M00-US-113",
     type: "US",
     module: "M01-M04",
+    status: "等待校驗",
+    conclusion:
+      "確認流程代碼完成：sidecar 出 confirm_request（工具名／風險級別／預覽／過期時間）→ Rust 轉 Tauri event → macOS 前端出確認卡（預覽 + 確認/取消 + 5 分鐘倒數提示）→ agent_confirm command 回 sidecar。**語音 confirm**：確認卡喺度時輸入「confirm / 確認 / ok / 好 / yes / 批准」即批；「cancel / 取消 / no」即拒；只作用於當前未過期嘅卡。探針 10（TS 生命週期）+ 1（Rust 解析 confirm_request）。**未做**：iOS/Android 版確認卡 UI（批次 3）；真實工具觸發嘅端到端畫面（M05 之後）",
     title: "高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期）",
     phase: "② 外部服務",
     priority: "P0",
