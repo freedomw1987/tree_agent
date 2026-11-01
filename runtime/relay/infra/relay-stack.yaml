@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Voice Agent M02 — relay backend（SQS long-poll transport ＋ DynamoDB transcript/tasks）
+  暫時資源（實驗用）；正式版會加 API Gateway + Lambda authorizer。
+
+Resources:
+  TasksQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-tasks"
+      MessageRetentionPeriod: 3600        # Mac 離線時任務唔會跌（OQ-5：跟 App 生死）
+      VisibilityTimeout: 30
+      ReceiveMessageWaitTimeSeconds: 20   # 長輪詢 → idle 成本 $0
+
+  TasksQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref TasksQueue]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt TasksQueue.Arn
+
+  ResultsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-results"
+      MessageRetentionPeriod: 3600
+      VisibilityTimeout: 30
+      ReceiveMessageWaitTimeSeconds: 20
+
+  ResultsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref ResultsQueue]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt ResultsQueue.Arn
+
+  TranscriptTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-transcript"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: sortKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: sortKey
+          KeyType: RANGE
+
+  TaskTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-tasks"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: requestId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: requestId
+          KeyType: HASH
+
+Outputs:
+  TasksQueueUrl:
+    Value: !Ref TasksQueue
+  ResultsQueueUrl:
+    Value: !Ref ResultsQueue
+  TranscriptTable:
+    Value: !Ref TranscriptTable
+  TaskTable:
+    Value: !Ref TaskTable

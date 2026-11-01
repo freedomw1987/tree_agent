@@ -52,5 +52,7 @@ cd spikes/relay-transport && npm i && npm test
 
 - **規劃 ✅** 19 項目 / 100 SP / 5 個 Module / 6 批次
 - **設計 ✅** 三層文件 + demo 原型（機械驗收 37 項全過）
-- **執行：批次 0（3 個 Spike）** — SPIKE-001 ✅ 定案（SQS long-poll）；SPIKE-002 iOS ✅ / Android ⛔；SPIKE-003 Polly ✅ / APNs-FCM ⛔
-- **下一步**：批次 1 = `M03 mac-runtime`（⚠️ 開工前要答 OQ-5：Mac 睡眠時 sidecar 點保持）
+- **執行 · 批次 0（3 個 Spike）** — SPIKE-001 ✅ 定案 **SQS long-poll**（p50 227ms / idle $0）；SPIKE-002 iOS ✅ / Android ⛔；SPIKE-003 Polly ✅ / APNs-FCM ⛔
+- **執行 · 批次 1 = M03 mac-runtime** — Node sidecar ✅（session host ＋ IPC ＋ 崩潰重啟 ＋ 真 Pi SDK 接線）；未做：Tauri macOS 殼、Workspace UI、Relay 接線
+- **執行 · 批次 2 = M02 relay-backend** — relay client ✅（冪等 ＋ transcript cursor ＋ queue ack）＋ **真實 AWS 端到端通過**（dev stack `voice-agent-m02-relay`）
+- **下一步**：批次 2 剩餘（HTTP API ＋ Lambda authorizer、成本守衛）→ 批次 3 = M01 client-app（⚠️ 需要 iOS simulator runtime ＋ Android SDK ＋ 憑證：OQ-10/OQ-11）

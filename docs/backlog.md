@@ -37,7 +37,7 @@
 | M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 9 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
 | M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 7 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | 進行中 | — |
-| M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | PENDING | SPIKE-001, M00-US-101, M00-US-103 |
+| M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | 進行中 | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
 | M00-US-106 | US | M04 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
 | M00-US-111 | US | M02-M04 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | PENDING | M00-US-103 |
@@ -191,9 +191,10 @@
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
 - **AC**: 5 條 Given-When-Then + DoD → [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html)
-- **業務規則**: transcript 存 DynamoDB（partition key = user_id）；每則訊息有 `request_id`（UUID）做冪等鍵；token 唔可以出現喺任何 log
+- **業務規則**: transcript 存 DynamoDB（partition key = user_id；sort key = ts#request_id#role —— **必須包埋 role**，否則同一毫秒內 user/agent 兩條會撞 key、增量拉取會漏條）；每則訊息有 `request_id`（UUID）做冪等鍵；token 唔可以出現喺任何 log
 - **依賴**: SPIKE-001 結論、AWS（Lambda / DynamoDB / relay transport）、M00-US-103
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-104`
+- **實測結論**: 已完成（M02 relay client 層，runtime/relay/）：sendTask（冪等：同 request_id 只入庫/入隊一次）／pollTasks（SQS 長輪詢）／publishResult／pollResults／readTranscript（cursor 增量）＋ 真實 AWS 接線（SQS + DynamoDB）。**真實端到端已通過**（App → tasks queue → Sidecar → results queue → App ＋ DynamoDB transcript，4.96 秒；AWS_E2E=1 opt-in 探針）。已部署 dev stack `voice-agent-m02-relay`（2 條 SQS ＋ 2 個 DynamoDB table，保留 ≥ 1 小時）。**未做**：HTTP API + Lambda authorizer（App 現時要直接用 AWS 憑證，正式版要收窄到 authorizer）、成本守衛
 - **為什麼這個優先**: P0：呢個係手機 → Mac 嘅唯一通道，亦係「冇消息遺失」嘅保證。
 - **需求錨點**: [req/M00-US-104-requirement.md](req/M00-US-104-requirement.md)
 

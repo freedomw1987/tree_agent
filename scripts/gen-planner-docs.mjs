@@ -256,6 +256,7 @@ const items = [
     id: "M00-US-104",
     type: "US",
     module: "M02",
+    status: "進行中",
     title: "AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -269,8 +270,10 @@ const items = [
       "Given 無效 / 過期 token When 呼叫 API Then 回 401 + App 顯示「請重新登入」（唔係 5xx）",
     ],
     dod: ["探針 `M00-US-104-relay-idempotent-and-persisted` 必通過"],
-    biz: "transcript 存 DynamoDB（partition key = user_id）；每則訊息有 `request_id`（UUID）做冪等鍵；token 唔可以出現喺任何 log",
+    biz: "transcript 存 DynamoDB（partition key = user_id；sort key = ts#request_id#role —— **必須包埋 role**，否則同一毫秒內 user/agent 兩條會撞 key、增量拉取會漏條）；每則訊息有 `request_id`（UUID）做冪等鍵；token 唔可以出現喺任何 log",
     dep: "SPIKE-001 結論、AWS（Lambda / DynamoDB / relay transport）、M00-US-103",
+    conclusion:
+      "已完成（M02 relay client 層，runtime/relay/）：sendTask（冪等：同 request_id 只入庫/入隊一次）／pollTasks（SQS 長輪詢）／publishResult／pollResults／readTranscript（cursor 增量）＋ 真實 AWS 接線（SQS + DynamoDB）。**真實端到端已通過**（App → tasks queue → Sidecar → results queue → App ＋ DynamoDB transcript，4.96 秒；AWS_E2E=1 opt-in 探針）。已部署 dev stack `voice-agent-m02-relay`（2 條 SQS ＋ 2 個 DynamoDB table，保留 ≥ 1 小時）。**未做**：HTTP API + Lambda authorizer（App 現時要直接用 AWS 憑證，正式版要收窄到 authorizer）、成本守衛",
     verify: "跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-104`",
     why: "P0：呢個係手機 → Mac 嘅唯一通道，亦係「冇消息遺失」嘅保證。",
     quotes: [
