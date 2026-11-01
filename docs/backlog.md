@@ -36,7 +36,7 @@
 | SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | 進行中（等憑證） | — |
 | M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 9 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
 | M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
-| M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 6 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
+| M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 7 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | 進行中 | — |
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | PENDING | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
 | M00-US-106 | US | M04 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
@@ -97,7 +97,7 @@
 | OQ-2 | 單任務 token / 時間預算嘅具體數值？ | M00-US-141 | **批次 2 前要有初值**（成本守衛要喺 Relay 開工時有上限） |
 | OQ-3 | 「任務完成」嘅定義（Agent 宣告 vs 用戶確認）？ | M00-US-132 | 影響每日任務數準確度 |
 | OQ-4 | transcript 保留期 + 刪除 / 匯出機制？ | M00-US-104 | 資料私隱 + 成本 |
-| OQ-5 | Mac 睡眠 / 熄屏時要唔要保持 sidecar 醒著（caffeinate / launchd）？ | M00-US-103 | **批次 1 前必答**（runtime 生命週期，直接影響「離開屋企仲能不能用」） |
+| OQ-5 | Mac 睡眠 / 熄屏時要唔要保持 sidecar 醒著（caffeinate / launchd）？ | M00-US-103 | ✅ 已答：**跟 App 生死**（App 開住 = 醒住；閂咗/Mac 瞓咗 = 停 → 任務留隊列 ≥ 1 小時，返嚟補做） |
 | OQ-6 | iOS 語音通知音檔大小上限同降級策略？ | SPIKE-003 | 技術上限，Spike 會實測 |
 | OQ-7 | iOS 發佈路徑（TestFlight vs App Store）同簽名安排？ | SPIKE-003 | 批次 3 前要定（影響點裝落手機試；需 Apple Developer 帳戶） |
 | OQ-10 | APNs auth key（.p8）＋ Firebase 專案（google-services.json / service account）可唔可以提供？ | M00-US-131 | **批次 3 前必答**（冇憑證就做唔到 iOS/Android 推播實測） |
@@ -177,10 +177,11 @@
 - **對應 Module**: M03（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
-- **AC**: 6 條 Given-When-Then + DoD → [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html)
-- **業務規則**: session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）；session 屬於一個 workspace（切 workspace = 換一組 session）；session 分流規則：同一話題續舊、新話題開新並自動命名；fork（帶上文開新）只係第二入口、預設唔開
+- **AC**: 7 條 Given-When-Then + DoD → [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html)
+- **業務規則**: session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）；session 屬於一個 workspace（切 workspace = 換一組 session）；session 分流規則：同一話題續舊、新話題開新並自動命名；fork（帶上文開新）只係第二入口、預設唔開；**sidecar 生命週期 = 跟 macOS App 生死**（App 開住 = 醒住；App 閂咗 / Mac 瞓咗 = 停 → 任務留喺 SQS 隊列保留 ≥ 1 小時，下次啟動自動補做）
 - **依賴**: Pi SDK（Node ≥ 20 或 Bun）、Tauri sidecar 機制（`newSession` / `switchSession` / `fork`）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-103`
+- **實測結論**: 批次 1 已完成（Node/TS 層）：runtime/sidecar/ — session host（create/continue/open/list/fork/switch ＋ 自動分流 ＋ 自動命名 ＋ streaming chunk/done）、IPC 協議（stdio JSON lines，15 條探針）、崩潰 supervisor（自動重啟 ≤ 5 秒，實測 3 條探針）、真 Pi SDK factory（已實測開到 session：sessionFile → ~/.pi/agent/sessions/…jsonl，model MiniMax-M3.1-Flash，開 session 唔調模型）。**未做**：Tauri macOS 殼（App 顯示「Agent 已就緒」）、Workspace 選擇 UI、Relay(SQS) client 接線 → 對應 M01/M02 批次
 - **為什麼這個優先**: P0：呢個係「真正執行」嘅落點 —— 冇佢，全部任務類 US 都做唔到。
 - **需求錨點**: [req/M00-US-103-requirement.md](req/M00-US-103-requirement.md)
 

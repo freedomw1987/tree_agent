@@ -32,6 +32,13 @@ run_step "lint: spikes/relay-transport (tsc --noEmit)" \
 run_step "probe: spikes/relay-transport (vitest run)" \
   bash -c "cd '$ROOT/spikes/relay-transport' && npx vitest run --reporter=dot"
 
+# 2b. 探針（sidecar：session host / IPC / supervisor）
+run_step "lint: runtime/sidecar (tsc --noEmit)" \
+  bash -c "cd '$ROOT/runtime/sidecar' && npx tsc --noEmit"
+
+run_step "probe: runtime/sidecar (vitest run)" \
+  bash -c "cd '$ROOT/runtime/sidecar' && npx vitest run --reporter=dot"
+
 # 3. 原型 smoke（demo 路線 + 跨 Surface 串連）
 run_step "probe: prototype/voice-agent (smoke)" \
   bash -c "cd '$ROOT/prototype/voice-agent' && node scripts/smoke.mjs"

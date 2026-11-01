@@ -38,14 +38,17 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>Given sidecar 崩潰 When supervisor 偵測到 Then 自動重啟（≤ 5 秒）並喺 App 顯示「Agent 已重啟」</li>
   <li>Given 用戶發一句新訊息 When Agent 判斷話題 Then 同一話題續返原本 session；新話題開新 session 並自動命名（用戶唔使理）</li>
   <li>Given 用戶想「帶住舊上文開新」 When 呼叫 fork 入口 Then 由現有 session 分岔出新 session，原本 session 唔受影響</li>
+  <li>Given macOS App 閂咗 / Mac 進入睡眠 When sidecar 收到終止訊號 Then 正常 dispose（session 檔保留、唔留孤兒 process）；期間派落嘅任務留喺 SQS 隊列，下次啟動自動補做</li>
 </ol>
 <h2>Definition of Done</h2>
 <ul class="dod">
   <li>探針 `M00-US-103-sidecar-session-lifecycle` 必通過</li>
   <li>dispose 後 `ps` 檢查無殘留 process</li>
 </ul>
+<h2>實測結論</h2>
+<div class="rules">批次 1 已完成（Node/TS 層）：runtime/sidecar/ — session host（create/continue/open/list/fork/switch ＋ 自動分流 ＋ 自動命名 ＋ streaming chunk/done）、IPC 協議（stdio JSON lines，15 條探針）、崩潰 supervisor（自動重啟 ≤ 5 秒，實測 3 條探針）、真 Pi SDK factory（已實測開到 session：sessionFile → ~/.pi/agent/sessions/…jsonl，model MiniMax-M3.1-Flash，開 session 唔調模型）。**未做**：Tauri macOS 殼（App 顯示「Agent 已就緒」）、Workspace 選擇 UI、Relay(SQS) client 接線 → 對應 M01/M02 批次</div>
 <h2>業務規則</h2>
-<div class="rules">session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）；session 屬於一個 workspace（切 workspace = 換一組 session）；session 分流規則：同一話題續舊、新話題開新並自動命名；fork（帶上文開新）只係第二入口、預設唔開</div>
+<div class="rules">session 由 sidecar 用 file-backed SessionManager 持久化喺 Mac 本地（唔上傳雲端）；workspace 由用戶指定（預設 `~/agent-workspace`）；session 屬於一個 workspace（切 workspace = 換一組 session）；session 分流規則：同一話題續舊、新話題開新並自動命名；fork（帶上文開新）只係第二入口、預設唔開；**sidecar 生命週期 = 跟 macOS App 生死**（App 開住 = 醒住；App 閂咗 / Mac 瞓咗 = 停 → 任務留喺 SQS 隊列保留 ≥ 1 小時，下次啟動自動補做）</div>
 <h2>依賴</h2>
 <div class="rules">Pi SDK（Node ≥ 20 或 Bun）、Tauri sidecar 機制（`newSession` / `switchSession` / `fork`）</div>
 <footer>

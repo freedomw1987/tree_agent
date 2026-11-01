@@ -19,3 +19,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
+| 2026-11-01 | 實測結論回填 | 批次 1 已完成（Node/TS 層）：runtime/sidecar/ — session host（create/continue/open/list/fork/switch ＋ 自動分流 ＋ 自動命名 ＋ streaming chun… |
