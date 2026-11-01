@@ -1,7 +1,19 @@
 # Backlog — Voice Agent App（手機 + macOS）
 
 > 產出：dav-planner Step 4（2026-11-01）｜來源：需求訪談（一次一題，V01；方案標推薦，V02）
-> 狀態：全部 PENDING ｜ Module 全部 M00（未切割，設計期回填）
+> 狀態：全部 PENDING ｜ Module 已於設計階段切割（dav-designer Step 1，2026-11-01）
+
+## Module 對照（設計階段切割）
+
+| Module | 名稱 | SP | 承載 US |
+| --- | --- | --- | --- |
+| M01 | client-app（Tauri 2 跨端 App） | 37 | US-101, US-102, US-105, US-131, US-132, TECH-401, SPIKE-002, SPIKE-003 |
+| M02 | relay-backend（AWS 中轉層） | 14 | US-104, US-141, SPIKE-001（+ US-105/131 server 側） |
+| M03 | mac-runtime（Mac sidecar + Pi SDK） | 13 | US-103, TECH-402 |
+| M04 | tool-governance（工具層 + Risk Gate + 確認） | 15 | US-111, US-113, US-106 |
+| M05 | tool-catalog（外部服務 + 檔案 + terminal） | 21 | US-112, US-121, US-122 |
+
+> Module 邊界 = 測試邊界；探針只針對本 Module 介面同內部狀態，唔跨 Module 檢查。
 
 ## ⚠️ 需求成熟度
 
@@ -19,25 +31,25 @@
 
 | US ID | 類型 | Module | 標題 | AC | 優先級 | Story Point | 狀態 | 依賴 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| SPIKE-001 | Spike | M00 | AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-001.md) ｜ [html](ac/SPIKE-001.html) | P0 | 3 | PENDING | — |
-| SPIKE-002 | Spike | M00 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | PENDING | — |
-| SPIKE-003 | Spike | M00 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | PENDING | — |
-| M00-US-101 | US | M00 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 4 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
-| M00-US-102 | US | M00 | 語音輸入（device native STT + 可編輯文字） | 5 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
-| M00-US-103 | US | M00 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 4 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
-| M00-US-104 | US | M00 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | PENDING | SPIKE-001, M00-US-101, M00-US-103 |
-| M00-US-105 | US | M00 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
-| M00-US-106 | US | M00 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
-| M00-US-111 | US | M00 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | PENDING | M00-US-103 |
-| M00-US-112 | US | M00 | 外部服務工具接入（首個 target 待定：GitHub / Gmail / Notion） | 4 條 BDD + DoD ｜ [md](ac/M00-US-112.md) ｜ [html](ac/M00-US-112.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113 |
-| M00-US-113 | US | M00 | 高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期） | 4 條 BDD + DoD ｜ [md](ac/M00-US-113.md) ｜ [html](ac/M00-US-113.html) | P0 | 5 | PENDING | M00-US-111, M00-US-102 |
-| M00-US-121 | US | M00 | Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace） | 4 條 BDD + DoD ｜ [md](ac/M00-US-121.md) ｜ [html](ac/M00-US-121.html) | P1 | 5 | PENDING | M00-US-111, M00-US-113, M00-US-103 |
-| M00-US-122 | US | M00 | Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷） | 4 條 BDD + DoD ｜ [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113, M00-US-121 |
-| M00-US-131 | US | M00 | 完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽） | 4 條 BDD + DoD ｜ [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html) | P0 | 5 | PENDING | SPIKE-003, M00-US-104, M00-US-105 |
-| M00-US-132 | US | M00 | 每日任務數統計 + 每日摘要（核心成功指標） | 3 條 BDD + DoD ｜ [md](ac/M00-US-132.md) ｜ [html](ac/M00-US-132.html) | P1 | 3 | PENDING | M00-US-106, M00-US-104 |
-| M00-US-141 | US | M00 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | PENDING | M00-US-104 |
-| TECH-401 | TECH | M00 | 自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin） | 1 條 BDD + DoD ｜ [md](ac/TECH-401.md) ｜ [html](ac/TECH-401.html) | P1 | 8 | PENDING | — |
-| TECH-402 | TECH | M00 | Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊） | 2 條 BDD + DoD ｜ [md](ac/TECH-402.md) ｜ [html](ac/TECH-402.html) | P2 | 5 | PENDING | M00-US-103 |
+| SPIKE-001 | Spike | M02 | AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-001.md) ｜ [html](ac/SPIKE-001.html) | P0 | 3 | PENDING | — |
+| SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | PENDING | — |
+| SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | PENDING | — |
+| M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 4 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | PENDING | — |
+| M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 5 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | PENDING | SPIKE-002, M00-US-101 |
+| M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 4 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | PENDING | — |
+| M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | PENDING | SPIKE-001, M00-US-101, M00-US-103 |
+| M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
+| M00-US-106 | US | M04 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
+| M00-US-111 | US | M02-M04 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | PENDING | M00-US-103 |
+| M00-US-112 | US | M05 | 外部服務工具接入（首個 target 待定：GitHub / Gmail / Notion） | 4 條 BDD + DoD ｜ [md](ac/M00-US-112.md) ｜ [html](ac/M00-US-112.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113 |
+| M00-US-113 | US | M01-M04 | 高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期） | 4 條 BDD + DoD ｜ [md](ac/M00-US-113.md) ｜ [html](ac/M00-US-113.html) | P0 | 5 | PENDING | M00-US-111, M00-US-102 |
+| M00-US-121 | US | M05 | Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace） | 4 條 BDD + DoD ｜ [md](ac/M00-US-121.md) ｜ [html](ac/M00-US-121.html) | P1 | 5 | PENDING | M00-US-111, M00-US-113, M00-US-103 |
+| M00-US-122 | US | M05 | Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷） | 4 條 BDD + DoD ｜ [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113, M00-US-121 |
+| M00-US-131 | US | M01-M02 | 完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽） | 4 條 BDD + DoD ｜ [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html) | P0 | 5 | PENDING | SPIKE-003, M00-US-104, M00-US-105 |
+| M00-US-132 | US | M01-M02 | 每日任務數統計 + 每日摘要（核心成功指標） | 3 條 BDD + DoD ｜ [md](ac/M00-US-132.md) ｜ [html](ac/M00-US-132.html) | P1 | 3 | PENDING | M00-US-106, M00-US-104 |
+| M00-US-141 | US | M02 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | PENDING | M00-US-104 |
+| TECH-401 | TECH | M01 | 自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin） | 1 條 BDD + DoD ｜ [md](ac/TECH-401.md) ｜ [html](ac/TECH-401.html) | P1 | 8 | PENDING | — |
+| TECH-402 | TECH | M03 | Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊） | 2 條 BDD + DoD ｜ [md](ac/TECH-402.md) ｜ [html](ac/TECH-402.html) | P2 | 5 | PENDING | M00-US-103 |
 
 **合計**: 19 個項目（14 US + 3 Spike + 2 TECH）＝ 100 SP
 
@@ -62,19 +74,32 @@
 | ④ 通知 + 指標 | 完成推播 + 語音通知 + 每日任務數 + 成本守衛 | M00-US-131, M00-US-132, M00-US-141 |
 | 技術債 | Tauri native plugin 層 + session 持久化 | TECH-401, TECH-402 |
 
+### 批次清單（1 批次 = 1 個完整 Module）
+
+| 批次 | Module | 涵蓋 US | SP | 先後 |
+| --- | --- | --- | --- | --- |
+| 0（前置補證） | — | SPIKE-001, SPIKE-002, SPIKE-003 | 9 | 可平行 |
+| 1 | M03 mac-runtime | US-103, TECH-402 | 13 | 外部依賴最少，先證明 Pi SDK 落地 |
+| 2 | M02 relay-backend | US-104, US-141 | 14 | 中轉 + 認證 + 持久化 |
+| 3 | M01 client-app | US-101, US-102, US-105, US-131, US-132, TECH-401 | 37 | 依賴批次 1 + 2 |
+| 4 | M04 tool-governance | US-111, US-113, US-106 | 15 | 依賴批次 1 + 3 |
+| 5 | M05 tool-catalog | US-112, US-121, US-122 | 21 | 依賴批次 4 |
+
+> 批次 = 交付 = 測試 = 回報邊界。冇 sprint 層、冇 velocity。
+
 ---
 
 ## Open questions（待確認）
 
 | ID | 問題 | 影響項目 | 狀態 |
 |----|------|----------|------|
-| OQ-1 | 第一個外部服務工具 target（GitHub / Gmail / Notion / 其他）？ | M00-US-112 | 阻塞落手，但唔阻塞前面 US |
-| OQ-2 | 單任務 token / 時間預算嘅具體數值？ | M00-US-141 | 需先實測平均用量 |
+| OQ-1 | 第一個外部服務工具 target（GitHub / Gmail / Notion / 其他）？ | M00-US-112 | **批次 5 前必答**（US-112 開工會阻塞） |
+| OQ-2 | 單任務 token / 時間預算嘅具體數值？ | M00-US-141 | **批次 2 前要有初值**（成本守衛要喺 Relay 開工時有上限） |
 | OQ-3 | 「任務完成」嘅定義（Agent 宣告 vs 用戶確認）？ | M00-US-132 | 影響每日任務數準確度 |
 | OQ-4 | transcript 保留期 + 刪除 / 匯出機制？ | M00-US-104 | 資料私隱 + 成本 |
-| OQ-5 | Mac 睡眠 / 熄屏時要唔要保持 sidecar 醒著（caffeinate / launchd）？ | M00-US-103 | 影響「離開屋企仲能不能用」 |
+| OQ-5 | Mac 睡眠 / 熄屏時要唔要保持 sidecar 醒著（caffeinate / launchd）？ | M00-US-103 | **批次 1 前必答**（runtime 生命週期，直接影響「離開屋企仲能不能用」） |
 | OQ-6 | iOS 語音通知音檔大小上限同降級策略？ | SPIKE-003 | 技術上限，Spike 會實測 |
-| OQ-7 | iOS 發佈路徑（TestFlight vs App Store）同簽名安排？ | SPIKE-003 | 影響交付方式 |
+| OQ-7 | iOS 發佈路徑（TestFlight vs App Store）同簽名安排？ | SPIKE-003 | 批次 3 前要定（影響點裝落手機試） |
 | OQ-8 | Cognito 遷移嘅時機同邊界（多租戶資料模型）？ | M00-US-111 | v2 之前決定 |
 | OQ-9 | workspace 位置：預設 `~/agent-workspace` 定支援多個 workspace？ | M00-US-103 / M00-US-121 | 影響檔案工具範圍 |
 
@@ -84,7 +109,7 @@
 
 ### SPIKE-001 詳細（AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M02（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 3 SP
 - **AC**: 2 條 Given-When-Then + DoD → [md](ac/SPIKE-001.md) ｜ [html](ac/SPIKE-001.html)
@@ -96,7 +121,7 @@
 
 ### SPIKE-002 詳細（Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 3 SP
 - **AC**: 2 條 Given-When-Then + DoD → [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html)
@@ -108,7 +133,7 @@
 
 ### SPIKE-003 詳細（Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑）
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01-M02（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 3 SP
 - **AC**: 3 條 Given-When-Then + DoD → [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html)
@@ -120,7 +145,7 @@
 
 ### M00-US-101 詳細（App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html)
@@ -132,7 +157,7 @@
 
 ### M00-US-102 詳細（語音輸入（device native STT + 可編輯文字））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 5 條 Given-When-Then + DoD → [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html)
@@ -144,7 +169,7 @@
 
 ### M00-US-103 詳細（Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M03（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html)
@@ -156,7 +181,7 @@
 
 ### M00-US-104 詳細（AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M02（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
 - **AC**: 5 條 Given-When-Then + DoD → [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html)
@@ -168,7 +193,7 @@
 
 ### M00-US-105 詳細（語音回覆（TTS = AWS Polly → App 播放））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01-M02（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html)
@@ -180,7 +205,7 @@
 
 ### M00-US-106 詳細（內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M04（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html)
@@ -192,7 +217,7 @@
 
 ### M00-US-111 詳細（工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證）
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M02-M04（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html)
@@ -204,7 +229,7 @@
 
 ### M00-US-112 詳細（外部服務工具接入（首個 target 待定：GitHub / Gmail / Notion））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M05（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-112.md) ｜ [html](ac/M00-US-112.html)
@@ -216,7 +241,7 @@
 
 ### M00-US-113 詳細（高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01-M04（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-113.md) ｜ [html](ac/M00-US-113.html)
@@ -228,7 +253,7 @@
 
 ### M00-US-121 詳細（Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M05（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-121.md) ｜ [html](ac/M00-US-121.html)
@@ -240,7 +265,7 @@
 
 ### M00-US-122 詳細（Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M05（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-122.md) ｜ [html](ac/M00-US-122.html)
@@ -252,7 +277,7 @@
 
 ### M00-US-131 詳細（完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01-M02（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 4 條 Given-When-Then + DoD → [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html)
@@ -264,7 +289,7 @@
 
 ### M00-US-132 詳細（每日任務數統計 + 每日摘要（核心成功指標））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01-M02（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 3 SP
 - **AC**: 3 條 Given-When-Then + DoD → [md](ac/M00-US-132.md) ｜ [html](ac/M00-US-132.html)
@@ -276,7 +301,7 @@
 
 ### M00-US-141 詳細（成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M02（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 3 SP
 - **AC**: 3 條 Given-When-Then + DoD → [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html)
@@ -288,7 +313,7 @@
 
 ### TECH-401 詳細（自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M01（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 8 SP
 - **AC**: 1 條 Given-When-Then + DoD → [md](ac/TECH-401.md) ｜ [html](ac/TECH-401.html)
@@ -300,7 +325,7 @@
 
 ### TECH-402 詳細（Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊））
 
-- **對應 Module**: M00（未切割 — 設計期回填）
+- **對應 Module**: M03（Module 名稱見「Module 對照」表）
 - **負責 dev**: （派工後填入）
 - **預估時間**: 5 SP
 - **AC**: 2 條 Given-When-Then + DoD → [md](ac/TECH-402.md) ｜ [html](ac/TECH-402.html)

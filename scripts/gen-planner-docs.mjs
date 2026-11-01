@@ -40,6 +40,7 @@ const items = [
   {
     id: "SPIKE-001",
     type: "Spike",
+    module: "M02",
     title: "AWS relay transport 選型（AppSync Events / SQS long-poll / API Gateway WebSocket）",
     phase: "0 架構補證",
     priority: "P0",
@@ -66,6 +67,7 @@ const items = [
   {
     id: "SPIKE-002",
     type: "Spike",
+    module: "M01",
     title: "Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語）",
     phase: "0 架構補證",
     priority: "P0",
@@ -92,6 +94,7 @@ const items = [
   {
     id: "SPIKE-003",
     type: "Spike",
+    module: "M01-M02",
     title: "Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑",
     phase: "0 架構補證",
     priority: "P0",
@@ -119,6 +122,7 @@ const items = [
   {
     id: "M00-US-101",
     type: "US",
+    module: "M01",
     title: "App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -147,6 +151,7 @@ const items = [
   {
     id: "M00-US-102",
     type: "US",
+    module: "M01",
     title: "語音輸入（device native STT + 可編輯文字）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -177,6 +182,7 @@ const items = [
   {
     id: "M00-US-103",
     type: "US",
+    module: "M03",
     title: "Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -205,6 +211,7 @@ const items = [
   {
     id: "M00-US-104",
     type: "US",
+    module: "M02",
     title: "AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -234,6 +241,7 @@ const items = [
   {
     id: "M00-US-105",
     type: "US",
+    module: "M01-M02",
     title: "語音回覆（TTS = AWS Polly → App 播放）",
     phase: "① 語音對話 loop",
     priority: "P1",
@@ -262,6 +270,7 @@ const items = [
   {
     id: "M00-US-106",
     type: "US",
+    module: "M04",
     title: "內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -290,6 +299,7 @@ const items = [
   {
     id: "M00-US-111",
     type: "US",
+    module: "M02-M04",
     title: "工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證",
     phase: "② 外部服務",
     priority: "P0",
@@ -321,6 +331,7 @@ const items = [
   {
     id: "M00-US-112",
     type: "US",
+    module: "M05",
     title: "外部服務工具接入（首個 target 待定：GitHub / Gmail / Notion）",
     phase: "② 外部服務",
     priority: "P1",
@@ -349,6 +360,7 @@ const items = [
   {
     id: "M00-US-113",
     type: "US",
+    module: "M01-M04",
     title: "高風險操作確認流程（App 預覽 + 語音 confirm + 5 分鐘過期）",
     phase: "② 外部服務",
     priority: "P0",
@@ -377,6 +389,7 @@ const items = [
   {
     id: "M00-US-121",
     type: "US",
+    module: "M05",
     title: "Workspace 檔案工具（read / write / search，路徑鎖死喺 workspace）",
     phase: "③ 檔案 + terminal",
     priority: "P1",
@@ -405,6 +418,7 @@ const items = [
   {
     id: "M00-US-122",
     type: "US",
+    module: "M05",
     title: "Terminal 工具 + 危險命令閘（黑名單 / 60 秒超時 / 輸出截斷）",
     phase: "③ 檔案 + terminal",
     priority: "P1",
@@ -433,6 +447,7 @@ const items = [
   {
     id: "M00-US-131",
     type: "US",
+    module: "M01-M02",
     title: "完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽）",
     phase: "④ 通知 + 指標",
     priority: "P0",
@@ -461,6 +476,7 @@ const items = [
   {
     id: "M00-US-132",
     type: "US",
+    module: "M01-M02",
     title: "每日任務數統計 + 每日摘要（核心成功指標）",
     phase: "④ 通知 + 指標",
     priority: "P1",
@@ -488,6 +504,7 @@ const items = [
   {
     id: "M00-US-141",
     type: "US",
+    module: "M02",
     title: "成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard）",
     phase: "④ 通知 + 指標",
     priority: "P1",
@@ -515,6 +532,7 @@ const items = [
   {
     id: "TECH-401",
     type: "TECH",
+    module: "M01",
     title: "自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin）",
     phase: "技術債",
     priority: "P1",
@@ -540,6 +558,7 @@ const items = [
   {
     id: "TECH-402",
     type: "TECH",
+    module: "M03",
     title: "Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊）",
     phase: "技術債",
     priority: "P2",
@@ -576,13 +595,13 @@ const nonGoals = [
 
 // ── Open questions（待用戶確認）────────────────────────────────────────────
 const openQuestions = [
-  ["OQ-1", "第一個外部服務工具 target（GitHub / Gmail / Notion / 其他）？", "M00-US-112", "阻塞落手，但唔阻塞前面 US"],
-  ["OQ-2", "單任務 token / 時間預算嘅具體數值？", "M00-US-141", "需先實測平均用量"],
+  ["OQ-1", "第一個外部服務工具 target（GitHub / Gmail / Notion / 其他）？", "M00-US-112", "**批次 5 前必答**（US-112 開工會阻塞）"],
+  ["OQ-2", "單任務 token / 時間預算嘅具體數值？", "M00-US-141", "**批次 2 前要有初值**（成本守衛要喺 Relay 開工時有上限）"],
   ["OQ-3", "「任務完成」嘅定義（Agent 宣告 vs 用戶確認）？", "M00-US-132", "影響每日任務數準確度"],
   ["OQ-4", "transcript 保留期 + 刪除 / 匯出機制？", "M00-US-104", "資料私隱 + 成本"],
-  ["OQ-5", "Mac 睡眠 / 熄屏時要唔要保持 sidecar 醒著（caffeinate / launchd）？", "M00-US-103", "影響「離開屋企仲能不能用」"],
+  ["OQ-5", "Mac 睡眠 / 熄屏時要唔要保持 sidecar 醒著（caffeinate / launchd）？", "M00-US-103", "**批次 1 前必答**（runtime 生命週期，直接影響「離開屋企仲能不能用」）"],
   ["OQ-6", "iOS 語音通知音檔大小上限同降級策略？", "SPIKE-003", "技術上限，Spike 會實測"],
-  ["OQ-7", "iOS 發佈路徑（TestFlight vs App Store）同簽名安排？", "SPIKE-003", "影響交付方式"],
+  ["OQ-7", "iOS 發佈路徑（TestFlight vs App Store）同簽名安排？", "SPIKE-003", "批次 3 前要定（影響點裝落手機試）"],
   ["OQ-8", "Cognito 遷移嘅時機同邊界（多租戶資料模型）？", "M00-US-111", "v2 之前決定"],
   ["OQ-9", "workspace 位置：預設 `~/agent-workspace` 定支援多個 workspace？", "M00-US-103 / M00-US-121", "影響檔案工具範圍"],
 ];
@@ -702,7 +721,19 @@ const backlog = () =>
     "# Backlog — Voice Agent App（手機 + macOS）",
     "",
     `> 產出：dav-planner Step 4（${DATE}）｜來源：需求訪談（一次一題，V01；方案標推薦，V02）`,
-    "> 狀態：全部 PENDING ｜ Module 全部 M00（未切割，設計期回填）",
+    "> 狀態：全部 PENDING ｜ Module 已於設計階段切割（dav-designer Step 1，2026-11-01）",
+    "",
+    "## Module 對照（設計階段切割）",
+    "",
+    "| Module | 名稱 | SP | 承載 US |",
+    "| --- | --- | --- | --- |",
+    "| M01 | client-app（Tauri 2 跨端 App） | 37 | US-101, US-102, US-105, US-131, US-132, TECH-401, SPIKE-002, SPIKE-003 |",
+    "| M02 | relay-backend（AWS 中轉層） | 14 | US-104, US-141, SPIKE-001（+ US-105/131 server 側） |",
+    "| M03 | mac-runtime（Mac sidecar + Pi SDK） | 13 | US-103, TECH-402 |",
+    "| M04 | tool-governance（工具層 + Risk Gate + 確認） | 15 | US-111, US-113, US-106 |",
+    "| M05 | tool-catalog（外部服務 + 檔案 + terminal） | 21 | US-112, US-121, US-122 |",
+    "",
+    "> Module 邊界 = 測試邊界；探針只針對本 Module 介面同內部狀態，唔跨 Module 檢查。",
     "",
     "## ⚠️ 需求成熟度",
     "",
@@ -722,7 +753,7 @@ const backlog = () =>
     "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ...items.map(
       (i) =>
-        `| ${i.id} | ${i.type} | M00 | ${i.title} | ${i.ac.length} 條 BDD + DoD ｜ [md](ac/${i.id}.md) ｜ [html](ac/${i.id}.html) | ${i.priority} | ${i.sp} | PENDING | ${i.deps.length ? i.deps.join(", ") : "—"} |`,
+        `| ${i.id} | ${i.type} | ${i.module} | ${i.title} | ${i.ac.length} 條 BDD + DoD ｜ [md](ac/${i.id}.md) ｜ [html](ac/${i.id}.html) | ${i.priority} | ${i.sp} | PENDING | ${i.deps.length ? i.deps.join(", ") : "—"} |`,
     ),
     "",
     `**合計**: ${items.length} 個項目（${items.filter((i) => i.type === "US").length} US + ${items.filter((i) => i.type === "Spike").length} Spike + ${items.filter((i) => i.type === "TECH").length} TECH）＝ ${items.reduce((s, i) => s + i.sp, 0)} SP`,
@@ -744,6 +775,19 @@ const backlog = () =>
     "| ④ 通知 + 指標 | 完成推播 + 語音通知 + 每日任務數 + 成本守衛 | M00-US-131, M00-US-132, M00-US-141 |",
     "| 技術債 | Tauri native plugin 層 + session 持久化 | TECH-401, TECH-402 |",
     "",
+    "### 批次清單（1 批次 = 1 個完整 Module）",
+    "",
+    "| 批次 | Module | 涵蓋 US | SP | 先後 |",
+    "| --- | --- | --- | --- | --- |",
+    "| 0（前置補證） | — | SPIKE-001, SPIKE-002, SPIKE-003 | 9 | 可平行 |",
+    "| 1 | M03 mac-runtime | US-103, TECH-402 | 13 | 外部依賴最少，先證明 Pi SDK 落地 |",
+    "| 2 | M02 relay-backend | US-104, US-141 | 14 | 中轉 + 認證 + 持久化 |",
+    "| 3 | M01 client-app | US-101, US-102, US-105, US-131, US-132, TECH-401 | 37 | 依賴批次 1 + 2 |",
+    "| 4 | M04 tool-governance | US-111, US-113, US-106 | 15 | 依賴批次 1 + 3 |",
+    "| 5 | M05 tool-catalog | US-112, US-121, US-122 | 21 | 依賴批次 4 |",
+    "",
+    "> 批次 = 交付 = 測試 = 回報邊界。冇 sprint 層、冇 velocity。",
+    "",
     "---",
     "",
     "## Open questions（待確認）",
@@ -759,7 +803,7 @@ const backlog = () =>
     ...items.flatMap((i) => [
       `### ${i.id} 詳細（${i.title}）`,
       "",
-      `- **對應 Module**: M00（未切割 — 設計期回填）`,
+      `- **對應 Module**: ${i.module}（Module 名稱見「Module 對照」表）`,
       `- **負責 dev**: （派工後填入）`,
       `- **預估時間**: ${i.sp} SP`,
       `- **AC**: ${i.ac.length} 條 Given-When-Then + DoD → [md](ac/${i.id}.md) ｜ [html](ac/${i.id}.html)`,
