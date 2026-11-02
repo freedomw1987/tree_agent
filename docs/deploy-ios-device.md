@@ -61,14 +61,42 @@ npx tauri ios dev --device            # 開發模式（熱重載）
 
 ### 3. 裝去手機
 
-**方法 A（Xcode 直裝）**：build 完打開 `src-tauri/gen/apple/build/iphoneos-*/` 入面嘅 Xcode project → 揀你部 iPhone → ▶ Run
-
-**方法 B（TestFlight／裝 IPA）**：
+**方法 A（CLI 一條龍，實測成功 ✅）**：
 ```bash
-cd apps/tauri-mobile/src-tauri/gen/apple/build/iphoneos-*/Payload
-# 用 Apple Configurator 或者：
+cd apps/tauri-mobile
+./node_modules/.bin/tauri ios build          # 真機版（預設 aarch64 = 真機；--device 係 ios dev 嘅參數）
 xcrun devicectl device install app --device <UDID> "Voice Agent.app"
+xcrun devicectl device process launch --device <UDID> com.voiceagent.mobile
 ```
+
+> ⚠️ `npx tauri` 會話「could not determine executable to run」→ 因為 CLI 裝喺 `apps/tauri-mobile/node_modules`，
+> 要 **cd 進 app 目錄**先用 `./node_modules/.bin/tauri`（或者用 `npm run tauri -- ios build`）。
+
+**方法 B（Xcode 直裝）**：build 完打開 `src-tauri/gen/apple/voice-agent-mobile.xcodeproj` → 揀你部 iPhone → ▶ Run
+
+**影相自查**（睇下真機畫面）：
+```bash
+xcrun devicectl device capture screenshot --device <UDID> --destination /tmp/shot.png
+```
+
+> ⚠️ **唔可以直接叫 xcodebuild**（會報 `cli-options-server.json` 唔存在）——
+> 「Build Rust Code」phase 一定要由 `tauri ios build` 開住個 options server 先行得到。
+> `-allowProvisioningUpdates` 亦都唔食（CLI 自己食唔到 `-a` 開頭嘅參數）；
+> profile 唔見就手動去 developer.apple.com 建立，或者用 Xcode 自動生成。
+
+### 3.5 簽名現況（2026-11-02 實測 ✅）
+
+```
+✅ Xcode 已有 team：6YR6P3Y6WP（Kuong Io Chu, Individual）
+✅ Provisioning Profile 已自動生成：iOS Team Provisioning Profile: *
+   ├ team：6YR6P3Y6WP
+   ├ 有效期：2027-11-02
+   └ 已包裝置：2 部（bb8f20e9…、00008101-00116CA12E91003A）
+✅ 真機 build 成功：Voice Agent.ipa（3.1 MB，含 embedded.mobileprovision）
+✅ 已安裝並啟動落真機（Kuong Io的iPhone (3)），畫面正常
+```
+
+---
 
 ### 4. 第一次喺手機開
 

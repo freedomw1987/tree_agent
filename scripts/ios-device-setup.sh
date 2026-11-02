@@ -43,7 +43,9 @@ else
 fi
 
 # 4) Xcode 登入嘅 team
-TEAMS=$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null | grep -oE '[A-Z0-9]{10}' | head -3 | tr '\n' ' ')
+# ⚠️ 唔可以用 regex 抽大寫字串（會抽中帳戶 UUID）→ 要讀 teamID 欄
+TEAMS=$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null \
+  | grep -E 'teamID|teamName' | sed 's/^[[:space:]]*//' | tr '\n' ' ')
 if [ -n "$TEAMS" ]; then
   say_ok "Xcode 已有開發 team：${TEAMS}"
 else
