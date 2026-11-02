@@ -1,0 +1,16 @@
+# 依賴
+node_modules/
+runtime/tools/.venv/
+# 編譯產物
+dist/
+build/
+target/
+*.local
+.DS_Store
+
+# 秘密（唔好上 GitHub）
+.relay-token
+apps/tauri-mobile/.cargo/config.toml
+*.p8
+*.p12
+*.mobileprovision
