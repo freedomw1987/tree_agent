@@ -17,4 +17,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
-| 2026-11-01 | 實測結論回填 | 第一個自建 plugin 已完成並跑通（plugins/tauri-plugin-ios-stt/）：Rust crate ＋ Swift package（ios/Package.swift ＋ .tauri/tauri-api）＋ bui… |
+| 2026-11-01 | 實測結論回填 | plugin 機制已通並跑咗兩個實例：tauri-plugin-ios-stt（SFSpeechRecognizer 粵語）＋ tauri-plugin-ios-qrscan（AVCaptureMetadataOutput）。關鍵位：① b… |

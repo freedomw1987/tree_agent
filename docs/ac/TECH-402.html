@@ -40,6 +40,8 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>探針 `TECH-402-session-persist-restore` 必通過</li>
   <li>探針 `TECH-402-sdk-version-pin` 必通過（版本 pin 喺 lockfile）</li>
 </ul>
+<h2>實測結論</h2>
+<div class="rules">session 持久化已做：Pi SDK `SessionManager.create(cwd)`（file-backed，存喺 Mac 本地）＋ `SessionManager.list()`（session 切換 UI）＋ `SessionManager.open(path)`（fork／續接）。transcript 對齊用 DynamoDB（cursor 必須包 role：ts#requestId#role —— 同一毫秒內 user+agent 會撞 key，實測踩過）。Pi SDK 版本釘死 1.4.0。**未做**：Pi SDK 大版本升級嘅相容性測試（等有新版本先做）</div>
 <h2>業務規則</h2>
 <div class="rules">session 存 Mac 本地；跨端只看 transcript；Pi SDK 版本升級必須過回歸先可以升</div>
 <h2>依賴</h2>

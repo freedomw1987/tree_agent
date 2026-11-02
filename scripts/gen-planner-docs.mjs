@@ -605,8 +605,11 @@ const items = [
     id: "TECH-401",
     type: "TECH",
     module: "M01",
+    status: "等待校驗",
     conclusion:
       "第一個自建 plugin 已完成並跑通（plugins/tauri-plugin-ios-stt/）：Rust crate ＋ Swift package（ios/Package.swift ＋ .tauri/tauri-api）＋ build.rs `.ios_path(\"ios\")`（自動 copy Tauri Swift API ＋ 編譯 Swift ＋ link）＋ `tauri::ios_plugin_binding!` FFI。**未做**：local TTS plugin、push plugin（要你嘅憑證）、Android 對應 plugin",
+    conclusion:
+      "plugin 機制已通並跑咗兩個實例：tauri-plugin-ios-stt（SFSpeechRecognizer 粵語）＋ tauri-plugin-ios-qrscan（AVCaptureMetadataOutput）。關鍵位：① build.rs 用 `.ios_path(\"ios\")`（自動 copy Tauri Swift API 去 .tauri/tauri-api ＋ 編譯 Swift package ＋ emit link 路徑）② `tauri::ios_plugin_binding!` FFI ③ Swift `@_cdecl(\"init_plugin_xxx\")`。踩過嘅坑：Swift 唔可以將 UIView 加落 window（UIKit 斷言 → SIGABRT）；present() 喺 Tauri root VC 會崩；startRunning() 唔可以喺主執行緒；Xcode build phase 唔繼承 shell 環境變數（要用 cargo [env]）。**未做**：local TTS plugin、push plugin（要憑證）",
     title: "自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin）",
     phase: "技術債",
     priority: "P1",
@@ -633,6 +636,9 @@ const items = [
     id: "TECH-402",
     type: "TECH",
     module: "M03",
+    status: "等待校驗",
+    conclusion:
+      "session 持久化已做：Pi SDK `SessionManager.create(cwd)`（file-backed，存喺 Mac 本地）＋ `SessionManager.list()`（session 切換 UI）＋ `SessionManager.open(path)`（fork／續接）。transcript 對齊用 DynamoDB（cursor 必須包 role：ts#requestId#role —— 同一毫秒內 user+agent 會撞 key，實測踩過）。Pi SDK 版本釘死 1.4.0。**未做**：Pi SDK 大版本升級嘅相容性測試（等有新版本先做）",
     title: "Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊）",
     phase: "技術債",
     priority: "P2",

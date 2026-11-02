@@ -48,8 +48,8 @@
 | M00-US-131 | US | M01-M02 | 完成推播（APNs/FCM）+ Polly 語音通知（鎖屏可聽） | 4 條 BDD + DoD ｜ [md](ac/M00-US-131.md) ｜ [html](ac/M00-US-131.html) | P0 | 5 | PENDING | SPIKE-003, M00-US-104, M00-US-105 |
 | M00-US-132 | US | M01-M02 | 每日任務數統計 + 每日摘要（核心成功指標） | 3 條 BDD + DoD ｜ [md](ac/M00-US-132.md) ｜ [html](ac/M00-US-132.html) | P1 | 3 | PENDING | M00-US-106, M00-US-104 |
 | M00-US-141 | US | M02 | 成本守衛（AWS 預算 alarm + 單任務預算上限 + 用量 dashboard） | 3 條 BDD + DoD ｜ [md](ac/M00-US-141.md) ｜ [html](ac/M00-US-141.html) | P1 | 3 | 等待校驗 | M00-US-104 |
-| TECH-401 | TECH | M01 | 自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin） | 1 條 BDD + DoD ｜ [md](ac/TECH-401.md) ｜ [html](ac/TECH-401.html) | P1 | 8 | PENDING | — |
-| TECH-402 | TECH | M03 | Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊） | 2 條 BDD + DoD ｜ [md](ac/TECH-402.md) ｜ [html](ac/TECH-402.html) | P2 | 5 | PENDING | M00-US-103 |
+| TECH-401 | TECH | M01 | 自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin） | 1 條 BDD + DoD ｜ [md](ac/TECH-401.md) ｜ [html](ac/TECH-401.html) | P1 | 8 | 等待校驗 | — |
+| TECH-402 | TECH | M03 | Pi SDK session 持久化 / 版本相容（sidecar session files + transcript 對齊） | 2 條 BDD + DoD ｜ [md](ac/TECH-402.md) ｜ [html](ac/TECH-402.html) | P2 | 5 | 等待校驗 | M00-US-103 |
 
 **合計**: 19 個項目（14 US + 3 Spike + 2 TECH）＝ 100 SP
 
@@ -334,7 +334,7 @@
 - **業務規則**: 平台細節（Swift / Kotlin）唔准漏到 UI 層；憑證管理喺 plugin 層統一處理
 - **依賴**: SPIKE-002、SPIKE-003
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh TECH-401`
-- **實測結論**: 第一個自建 plugin 已完成並跑通（plugins/tauri-plugin-ios-stt/）：Rust crate ＋ Swift package（ios/Package.swift ＋ .tauri/tauri-api）＋ build.rs `.ios_path("ios")`（自動 copy Tauri Swift API ＋ 編譯 Swift ＋ link）＋ `tauri::ios_plugin_binding!` FFI。**未做**：local TTS plugin、push plugin（要你嘅憑證）、Android 對應 plugin
+- **實測結論**: plugin 機制已通並跑咗兩個實例：tauri-plugin-ios-stt（SFSpeechRecognizer 粵語）＋ tauri-plugin-ios-qrscan（AVCaptureMetadataOutput）。關鍵位：① build.rs 用 `.ios_path("ios")`（自動 copy Tauri Swift API 去 .tauri/tauri-api ＋ 編譯 Swift package ＋ emit link 路徑）② `tauri::ios_plugin_binding!` FFI ③ Swift `@_cdecl("init_plugin_xxx")`。踩過嘅坑：Swift 唔可以將 UIView 加落 window（UIKit 斷言 → SIGABRT）；present() 喺 Tauri root VC 會崩；startRunning() 唔可以喺主執行緒；Xcode build phase 唔繼承 shell 環境變數（要用 cargo [env]）。**未做**：local TTS plugin、push plugin（要憑證）
 - **為什麼這個優先**: P1：呢個係 US-102 / US-131 嘅前置技術債 —— 唔起好呢層，語音同通知兩樣都做唔到。
 - **需求錨點**: [req/TECH-401-requirement.md](req/TECH-401-requirement.md)
 
@@ -347,6 +347,7 @@
 - **業務規則**: session 存 Mac 本地；跨端只看 transcript；Pi SDK 版本升級必須過回歸先可以升
 - **依賴**: M00-US-103
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh TECH-402`
+- **實測結論**: session 持久化已做：Pi SDK `SessionManager.create(cwd)`（file-backed，存喺 Mac 本地）＋ `SessionManager.list()`（session 切換 UI）＋ `SessionManager.open(path)`（fork／續接）。transcript 對齊用 DynamoDB（cursor 必須包 role：ts#requestId#role —— 同一毫秒內 user+agent 會撞 key，實測踩過）。Pi SDK 版本釘死 1.4.0。**未做**：Pi SDK 大版本升級嘅相容性測試（等有新版本先做）
 - **為什麼這個優先**: P2：session 係長對話體驗嘅地基；版本相容唔理會喺 SDK 升級嗰日先爆，就會連帶用戶資料讀唔到。
 - **需求錨點**: [req/TECH-402-requirement.md](req/TECH-402-requirement.md)
 

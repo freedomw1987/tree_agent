@@ -14,6 +14,10 @@
 - [ ] 探針 `TECH-402-session-persist-restore` 必通過
 - [ ] 探針 `TECH-402-sdk-version-pin` 必通過（版本 pin 喺 lockfile）
 
+## 實測結論
+
+session 持久化已做：Pi SDK `SessionManager.create(cwd)`（file-backed，存喺 Mac 本地）＋ `SessionManager.list()`（session 切換 UI）＋ `SessionManager.open(path)`（fork／續接）。transcript 對齊用 DynamoDB（cursor 必須包 role：ts#requestId#role —— 同一毫秒內 user+agent 會撞 key，實測踩過）。Pi SDK 版本釘死 1.4.0。**未做**：Pi SDK 大版本升級嘅相容性測試（等有新版本先做）
+
 ## 業務規則
 
 session 存 Mac 本地；跨端只看 transcript；Pi SDK 版本升級必須過回歸先可以升

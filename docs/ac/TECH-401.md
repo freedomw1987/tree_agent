@@ -15,7 +15,7 @@
 
 ## 實測結論
 
-第一個自建 plugin 已完成並跑通（plugins/tauri-plugin-ios-stt/）：Rust crate ＋ Swift package（ios/Package.swift ＋ .tauri/tauri-api）＋ build.rs `.ios_path("ios")`（自動 copy Tauri Swift API ＋ 編譯 Swift ＋ link）＋ `tauri::ios_plugin_binding!` FFI。**未做**：local TTS plugin、push plugin（要你嘅憑證）、Android 對應 plugin
+plugin 機制已通並跑咗兩個實例：tauri-plugin-ios-stt（SFSpeechRecognizer 粵語）＋ tauri-plugin-ios-qrscan（AVCaptureMetadataOutput）。關鍵位：① build.rs 用 `.ios_path("ios")`（自動 copy Tauri Swift API 去 .tauri/tauri-api ＋ 編譯 Swift package ＋ emit link 路徑）② `tauri::ios_plugin_binding!` FFI ③ Swift `@_cdecl("init_plugin_xxx")`。踩過嘅坑：Swift 唔可以將 UIView 加落 window（UIKit 斷言 → SIGABRT）；present() 喺 Tauri root VC 會崩；startRunning() 唔可以喺主執行緒；Xcode build phase 唔繼承 shell 環境變數（要用 cargo [env]）。**未做**：local TTS plugin、push plugin（要憑證）
 
 ## 業務規則
 
