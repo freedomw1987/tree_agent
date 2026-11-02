@@ -35,7 +35,7 @@
 | SPIKE-002 | Spike | M01 | Mobile device-native STT 可行性（iOS Speech framework / Android SpeechRecognizer 粵語） | 2 條 BDD + DoD ｜ [md](ac/SPIKE-002.md) ｜ [html](ac/SPIKE-002.html) | P0 | 3 | 進行中（等真機/SDK） | — |
 | SPIKE-003 | Spike | M01-M02 | Mobile push（APNs/FCM）+ Polly 語音通知可行性 + iOS 發佈路徑 | 3 條 BDD + DoD ｜ [md](ac/SPIKE-003.md) ｜ [html](ac/SPIKE-003.html) | P0 | 3 | 進行中（等憑證） | — |
 | M00-US-101 | US | M01 | App 對話介面（Tauri 2 跨 iOS/Android/macOS，WeChat 式） | 9 條 BDD + DoD ｜ [md](ac/M00-US-101.md) ｜ [html](ac/M00-US-101.html) | P0 | 5 | 等待校驗 | — |
-| M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | 進行中（等 native plugin） | SPIKE-002, M00-US-101 |
+| M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | 等待校驗 | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 7 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | 等待校驗 | — |
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | 等待校驗 | SPIKE-001, M00-US-101, M00-US-103 |
 | M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
@@ -170,7 +170,7 @@
 - **業務規則**: STT 一律 device native（音頻唔上傳）；語言 zh-HK；輸入模式：左側 Voice/鍵盤轉換鈕，Voice 模式按住「按住 說話」（放開即完成錄音並傳送），鍵盤模式多行輸入 ＋ 右側「傳送」鈕；『語音送出前先編輯』設定預設關（開啟則轉成文字先編輯再送出）；STT 空結果唔可以送出
 - **依賴**: SPIKE-002 結論、Tauri mobile native plugin（TECH-401）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-102`
-- **實測結論**: UI 層已就緒：「按住 說話」掣（觸控開始／放開送出）、語音模式／鍵盤模式切換、STT 冇 plugin 時自動退回鍵盤（唔會卡死）。**未做**：native STT plugin（iOS SFSpeechRecognizer zh-HK / Android SpeechRecognizer）—— 要寫 Swift ＋ Kotlin ＋ Tauri plugin 骨架（M01 plugin 層，見 US-131）
+- **實測結論**: iOS STT plugin 已完成（plugins/tauri-plugin-ios-stt/）：Swift `SFSpeechRecognizer`（預設 zh-HK 粵語）＋ `AVAudioEngine` 收音 ＋ Rust 端 `run_mobile_plugin` 代理 ＋ app 層 `stt_start` / `stt_stop` / `stt_status` command ＋ Info.plist 權限說明。**simulator 實測**：權限 authorized ✅、zh-HK recognizer available ✅、on-device 支援 ✅、錄音引擎啟動 ✅、錯誤處理清晰 ✅；但 **Apple 個 speech recognizer 喺 simulator 初始化唔到**（已知限制，錯誤訊息已講明要真機）→ 真正嘅辨識文字要真機驗證。前端：啟動時查 stt_status，唔得就自動切鍵盤；按住說話失敗都會講明原因。**未做**：Android STT（Kotlin）、真機驗證
 - **為什麼這個優先**: P0：「唔使打字」係呢個產品嘅核心價值；呢個係第一個真正解決痛點嘅功能。
 - **需求錨點**: [req/M00-US-102-requirement.md](req/M00-US-102-requirement.md)
 
@@ -334,6 +334,7 @@
 - **業務規則**: 平台細節（Swift / Kotlin）唔准漏到 UI 層；憑證管理喺 plugin 層統一處理
 - **依賴**: SPIKE-002、SPIKE-003
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh TECH-401`
+- **實測結論**: 第一個自建 plugin 已完成並跑通（plugins/tauri-plugin-ios-stt/）：Rust crate ＋ Swift package（ios/Package.swift ＋ .tauri/tauri-api）＋ build.rs `.ios_path("ios")`（自動 copy Tauri Swift API ＋ 編譯 Swift ＋ link）＋ `tauri::ios_plugin_binding!` FFI。**未做**：local TTS plugin、push plugin（要你嘅憑證）、Android 對應 plugin
 - **為什麼這個優先**: P1：呢個係 US-102 / US-131 嘅前置技術債 —— 唔起好呢層，語音同通知兩樣都做唔到。
 - **需求錨點**: [req/TECH-401-requirement.md](req/TECH-401-requirement.md)
 

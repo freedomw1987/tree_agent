@@ -379,13 +379,13 @@
     holdBtn.classList.add("recording");
     holdBtn.textContent = "聽緊… 放開送出";
     try {
-      await window.__TAURI__.core.invoke("stt_start");
+      await window.__TAURI__.core.invoke("stt_start", { locale: "zh-HK" });
     } catch (e) {
       holding = false;
       holdBtn.classList.remove("recording");
       holdBtn.textContent = "按住 說話";
       setMode("keyboard");
-      addBubble("sys", "語音輸入未安裝（用鍵盤打）");
+      addBubble("sys", "語音輸入未就緒：" + e + "\n（已切換到鍵盤輸入）");
     }
   }
   async function sttStop() {
@@ -462,8 +462,25 @@
   }
 
   // ── 啟動 ────────────────────────────────────────────────────────
+  // 語音輸入狀態（權限／recognizer 可用性）—— 唔好等到用戶先知唔得
+  async function checkStt() {
+    try {
+      const st = await window.__TAURI__.core.invoke("stt_status");
+      if (st.auth !== "authorized") {
+        setMode("keyboard");
+        addBubble("sys", "未授權語音辨識（設定 → 隱私權與安全性 → 語音辨識），暫時用鍵盤輸入");
+      } else if (!st.zhHKAvailable) {
+        setMode("keyboard");
+        addBubble("sys", "呢部裝置暫時用唔到粵語語音辨識，暫時用鍵盤輸入");
+      }
+    } catch (e) {
+      setMode("keyboard");
+    }
+  }
+
   (async function init() {
     setMode("voice");
+    checkStt();
     renderSessions();
     const savedUrl = localStorage.getItem("va_api_url");
     const savedToken = localStorage.getItem("va_token");

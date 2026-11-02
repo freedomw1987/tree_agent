@@ -47,7 +47,7 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #d8dbe0; col
   <li>iOS / Android 真機各測 20 句粵語樣本並記錄結果</li>
 </ul>
 <h2>實測結論</h2>
-<div class="rules">UI 層已就緒：「按住 說話」掣（觸控開始／放開送出）、語音模式／鍵盤模式切換、STT 冇 plugin 時自動退回鍵盤（唔會卡死）。**未做**：native STT plugin（iOS SFSpeechRecognizer zh-HK / Android SpeechRecognizer）—— 要寫 Swift ＋ Kotlin ＋ Tauri plugin 骨架（M01 plugin 層，見 US-131）</div>
+<div class="rules">iOS STT plugin 已完成（plugins/tauri-plugin-ios-stt/）：Swift `SFSpeechRecognizer`（預設 zh-HK 粵語）＋ `AVAudioEngine` 收音 ＋ Rust 端 `run_mobile_plugin` 代理 ＋ app 層 `stt_start` / `stt_stop` / `stt_status` command ＋ Info.plist 權限說明。**simulator 實測**：權限 authorized ✅、zh-HK recognizer available ✅、on-device 支援 ✅、錄音引擎啟動 ✅、錯誤處理清晰 ✅；但 **Apple 個 speech recognizer 喺 simulator 初始化唔到**（已知限制，錯誤訊息已講明要真機）→ 真正嘅辨識文字要真機驗證。前端：啟動時查 stt_status，唔得就自動切鍵盤；按住說話失敗都會講明原因。**未做**：Android STT（Kotlin）、真機驗證</div>
 <h2>業務規則</h2>
 <div class="rules">STT 一律 device native（音頻唔上傳）；語言 zh-HK；輸入模式：左側 Voice/鍵盤轉換鈕，Voice 模式按住「按住 說話」（放開即完成錄音並傳送），鍵盤模式多行輸入 ＋ 右側「傳送」鈕；『語音送出前先編輯』設定預設關（開啟則轉成文字先編輯再送出）；STT 空結果唔可以送出</div>
 <h2>依賴</h2>

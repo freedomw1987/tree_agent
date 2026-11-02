@@ -1,6 +1,7 @@
 pub mod relay;
 
 use relay::{RelayConfig, RelayState};
+use tauri_plugin_ios_stt::SttExt;
 use serde_json::json;
 use std::path::PathBuf;
 use tauri::{Manager, State};
@@ -60,6 +61,29 @@ async fn relay_transcript(
     Ok(serde_json::to_value(page).map_err(|e| e.to_string())?)
 }
 
+/// 開始語音辨識（iOS 原生 STT；預設粵語 zh-HK）
+#[tauri::command]
+async fn stt_start(
+    app: tauri::AppHandle,
+    locale: Option<String>,
+) -> Result<serde_json::Value, String> {
+    app.stt().start(locale).map_err(|e| e.to_string())?;
+    Ok(json!({ "ok": true }))
+}
+
+/// 語音辨識狀態（權限 ＋ recognizer 可用性）
+#[tauri::command]
+async fn stt_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    app.stt().status().map_err(|e| e.to_string())
+}
+
+/// 停止語音辨識 → 拎返文字
+#[tauri::command]
+async fn stt_stop(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let outcome = app.stt().stop().map_err(|e| e.to_string())?;
+    Ok(serde_json::to_value(outcome).map_err(|e| e.to_string())?)
+}
+
 /// 回覆確認卡（批／唔批）
 #[tauri::command]
 async fn relay_confirm(
@@ -96,6 +120,30 @@ fn selftest_log(app: &tauri::AppHandle, line: &str) {
         }
     }
     println!("{line}");
+}
+
+/// STT 自檢：真係開 mic 錄 5 秒，再停低拎文字
+async fn stt_selftest(app: tauri::AppHandle) {
+    match app.stt().status() {
+        Ok(v) => selftest_log(&app, &format!("[stt] 狀態：{v}")),
+        Err(e) => selftest_log(&app, &format!("[stt] 狀態查詢失敗：{e}")),
+    }
+    selftest_log(&app, "[stt] 開始測試（粵語 zh-HK）");
+    match app.stt().start(Some("zh-HK".to_string())) {
+        Ok(()) => selftest_log(&app, "[stt] 開始錄音 ✓"),
+        Err(e) => {
+            selftest_log(&app, &format!("[stt] 開始失敗：{e}"));
+            return;
+        }
+    }
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    match app.stt().stop() {
+        Ok(o) => selftest_log(
+            &app,
+            &format!("[stt] 結果：「{}」（final={}，長度 {}）", o.text, o.is_final, o.text.chars().count()),
+        ),
+        Err(e) => selftest_log(&app, &format!("[stt] 停止失敗：{e}")),
+    }
 }
 
 /// 自檢：派一個真任務去 relay，等 Mac 上面嘅 sidecar 做完再攞返結果
@@ -157,6 +205,7 @@ async fn relay_selftest(state: RelayState, app: tauri::AppHandle) {
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_ios_stt::init())
         .manage(RelayState::new())
         .setup(|app| {
             // 1) 執行時 config 檔（優先）
@@ -171,6 +220,12 @@ pub fn run() {
                                 token: token.to_string(),
                             });
                             println!("[relay] 已由 {} 載入設定", path.display());
+                        }
+                        if v.get("stt_test").and_then(|b| b.as_bool()).unwrap_or(false) {
+                            let handle = app.handle().clone();
+                            tauri::async_runtime::spawn(async move {
+                                stt_selftest(handle).await;
+                            });
                         }
                         if v.get("selftest").and_then(|b| b.as_bool()).unwrap_or(false) {
                             let state = app.state::<RelayState>().inner().clone();
@@ -191,6 +246,9 @@ pub fn run() {
             relay_poll,
             relay_transcript,
             relay_confirm,
+            stt_start,
+            stt_stop,
+            stt_status,
             app_info
         ]);
 

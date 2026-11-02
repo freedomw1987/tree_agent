@@ -183,9 +183,11 @@ const items = [
     id: "M00-US-102",
     type: "US",
     module: "M01",
-    status: "進行中（等 native plugin）",
+    status: "等待校驗",
     conclusion:
       "UI 層已就緒：「按住 說話」掣（觸控開始／放開送出）、語音模式／鍵盤模式切換、STT 冇 plugin 時自動退回鍵盤（唔會卡死）。**未做**：native STT plugin（iOS SFSpeechRecognizer zh-HK / Android SpeechRecognizer）—— 要寫 Swift ＋ Kotlin ＋ Tauri plugin 骨架（M01 plugin 層，見 US-131）",
+    conclusion:
+      "iOS STT plugin 已完成（plugins/tauri-plugin-ios-stt/）：Swift `SFSpeechRecognizer`（預設 zh-HK 粵語）＋ `AVAudioEngine` 收音 ＋ Rust 端 `run_mobile_plugin` 代理 ＋ app 層 `stt_start` / `stt_stop` / `stt_status` command ＋ Info.plist 權限說明。**simulator 實測**：權限 authorized ✅、zh-HK recognizer available ✅、on-device 支援 ✅、錄音引擎啟動 ✅、錯誤處理清晰 ✅；但 **Apple 個 speech recognizer 喺 simulator 初始化唔到**（已知限制，錯誤訊息已講明要真機）→ 真正嘅辨識文字要真機驗證。前端：啟動時查 stt_status，唔得就自動切鍵盤；按住說話失敗都會講明原因。**未做**：Android STT（Kotlin）、真機驗證",
     title: "語音輸入（device native STT + 可編輯文字）",
     phase: "① 語音對話 loop",
     priority: "P0",
@@ -603,6 +605,8 @@ const items = [
     id: "TECH-401",
     type: "TECH",
     module: "M01",
+    conclusion:
+      "第一個自建 plugin 已完成並跑通（plugins/tauri-plugin-ios-stt/）：Rust crate ＋ Swift package（ios/Package.swift ＋ .tauri/tauri-api）＋ build.rs `.ios_path(\"ios\")`（自動 copy Tauri Swift API ＋ 編譯 Swift ＋ link）＋ `tauri::ios_plugin_binding!` FFI。**未做**：local TTS plugin、push plugin（要你嘅憑證）、Android 對應 plugin",
     title: "自建 Tauri mobile native plugin 層（STT / local TTS / push 冇官方 plugin）",
     phase: "技術債",
     priority: "P1",

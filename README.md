@@ -18,6 +18,7 @@ docs/
 prototype/voice-agent/  系統 demo 原型（3 Surface ＋ 9 步 demo 路線 ＋ 五狀態切換器）
 apps/tauri-mac/      M03 macOS App（Tauri 2）：Rust supervisor ＋ commands ＋ 對話介面
 apps/tauri-mobile/   M01 手機 App（Tauri 2 iOS/Android）：WeChat 式對話 UI ＋ relay 客戶端 ＋ 跨機確認卡
+plugins/              M01 自建 Tauri mobile plugin：tauri-plugin-ios-stt（iOS 原生語音辨識）
 runtime/
   sidecar/           M03 Mac sidecar（Pi SDK host）：session host ＋ IPC ＋ 崩潰重啟 ＋ 預算上限
   relay/             M02 relay client：冪等 ＋ transcript cursor ＋ SQS/DynamoDB 接線
@@ -39,6 +40,8 @@ bash scripts/check-all.sh
 
 # 手機 App（iOS simulator）
 cd apps/tauri-mobile && npx tauri ios build -t aarch64-sim && npx tauri ios dev
+# iOS STT plugin（改完 Swift 要重新 build 先生效）
+cd ../../plugins/tauri-plugin-ios-stt && swift build --package-path ios 2>/dev/null || true
 
 # 端到端驗證（真 Pi SDK：Agent → 工具 → 確認卡 → 批核 → 執行）
 cd runtime/sidecar && npm run build && node scripts/e2e-tool-flow.mjs

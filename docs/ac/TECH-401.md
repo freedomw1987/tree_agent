@@ -13,6 +13,10 @@
 - [ ] 探針 `TECH-401-plugin-interface-stable` 必通過
 - [ ] Rust trait 介面變更時唔使改 UI 層（介面穩定性測試）
 
+## 實測結論
+
+第一個自建 plugin 已完成並跑通（plugins/tauri-plugin-ios-stt/）：Rust crate ＋ Swift package（ios/Package.swift ＋ .tauri/tauri-api）＋ build.rs `.ios_path("ios")`（自動 copy Tauri Swift API ＋ 編譯 Swift ＋ link）＋ `tauri::ios_plugin_binding!` FFI。**未做**：local TTS plugin、push plugin（要你嘅憑證）、Android 對應 plugin
+
 ## 業務規則
 
 平台細節（Swift / Kotlin）唔准漏到 UI 層；憑證管理喺 plugin 層統一處理
