@@ -6,5 +6,7 @@
   <string>需要麥克風嚟聽你講嘢（語音輸入）。音訊只喺裝置本機處理。</string>
   <key>NSSpeechRecognitionUsageDescription</key>
   <string>需要語音辨識將你講嘅嘢轉成文字。辨識喺裝置本機完成，唔會上傳音訊。</string>
+  <key>NSCameraUsageDescription</key>
+  <string>需要相機嚟掃描「配對 QR」，將 App 連接到你嘅 Mac（唔會影相或錄影，只用嚟讀 QR code）。</string>
 </dict>
 </plist>

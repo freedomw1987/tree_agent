@@ -81,6 +81,7 @@ pub struct RelayState {
 impl RelayState {
     pub fn new() -> Self {
         // 編譯時可以燒入預設 relay（v1：單用戶 token 存喺 App 度）
+        // 編譯時可以燒入 relay（V1 單用戶：token 跟 App 走，設定頁仍可覆蓋）
         let default = match (
             option_env!("VA_RELAY_API_URL"),
             option_env!("VA_RELAY_TOKEN"),

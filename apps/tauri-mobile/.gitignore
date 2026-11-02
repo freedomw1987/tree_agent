@@ -2,3 +2,4 @@ node_modules/
 *.local
 .DS_Store
 src-tauri/gen/
+.cargo/config.toml

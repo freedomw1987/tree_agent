@@ -1,0 +1,8 @@
+# 複製成 .cargo/config.toml 再填你嘅值（.cargo/config.toml 已 gitignore）
+#
+# 用途：真機 build 時 Xcode build phase 唔會繼承你 shell 嘅環境變數，
+#       所以 relay 設定要經 cargo [env] 傳入（Rust 側用 option_env! 讀）。
+#       設定咗之後，手機 App 第一次開就自動連線，唔使人手填。
+[env]
+VA_RELAY_API_URL = "https://xxxx.execute-api.ap-southeast-1.amazonaws.com"
+VA_RELAY_TOKEN = "va_live_xxxxxxxx"

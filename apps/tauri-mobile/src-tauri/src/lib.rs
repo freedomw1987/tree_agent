@@ -1,6 +1,7 @@
 pub mod relay;
 
 use relay::{RelayConfig, RelayState};
+use tauri_plugin_ios_qrscan::QrScanExt;
 use tauri_plugin_ios_stt::SttExt;
 use serde_json::json;
 use std::path::PathBuf;
@@ -71,7 +72,14 @@ async fn stt_start(
     Ok(json!({ "ok": true }))
 }
 
-/// 語音辨識狀態（權限 ＋ recognizer 可用性）
+/// 掃描 QR（配對用：入面係 relay API URL + token）
+#[tauri::command]
+async fn qr_scan(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let result = app.qrscan().scan().map_err(|e| e.to_string())?;
+    Ok(serde_json::to_value(result).map_err(|e| e.to_string())?)
+}
+
+/// 語音辨識狀態（權積 ＋ recognizer 可用性）
 #[tauri::command]
 async fn stt_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     app.stt().status().map_err(|e| e.to_string())
@@ -93,6 +101,15 @@ async fn relay_confirm(
 ) -> Result<serde_json::Value, String> {
     state.confirm_task(&request_id, approved).await?;
     Ok(json!({ "ok": true }))
+}
+
+/// 查 relay 設定（前端用：build 有燒入就唔使人手填）
+#[tauri::command]
+fn relay_configured(state: State<'_, RelayState>) -> serde_json::Value {
+    match state.get_config() {
+        Some(cfg) => json!({ "configured": true, "apiUrl": cfg.api_url }),
+        None => json!({ "configured": false, "apiUrl": "" }),
+    }
 }
 
 /// App 資訊（版號 ＋ 有冇設定 relay）
@@ -206,6 +223,7 @@ pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_ios_stt::init())
+        .plugin(tauri_plugin_ios_qrscan::init())
         .manage(RelayState::new())
         .setup(|app| {
             // 1) 執行時 config 檔（優先）
@@ -246,9 +264,11 @@ pub fn run() {
             relay_poll,
             relay_transcript,
             relay_confirm,
+            relay_configured,
             stt_start,
             stt_stop,
             stt_status,
+            qr_scan,
             app_info
         ]);
 

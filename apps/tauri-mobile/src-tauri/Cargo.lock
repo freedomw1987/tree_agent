@@ -3738,6 +3738,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-ios-qrscan"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "tauri-plugin-ios-stt"
 version = "0.1.0"
 dependencies = [
@@ -4340,6 +4351,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-plugin-ios-qrscan",
  "tauri-plugin-ios-stt",
  "tauri-plugin-opener",
  "tokio",

@@ -36,6 +36,12 @@
     padding-top: env(safe-area-inset-top);
   }
   button { font-family: inherit; cursor: pointer; }
+  /* ── SVG icon（唔用 emoji，統一 24x24 線條 icon）────────────── */
+  .icon { width: 22px; height: 22px; display: block; stroke: currentColor; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .icon.sm { width: 16px; height: 16px; }
+  button.icon-btn, button.round { align-items: center; justify-content: center; }
+  .with-icon { display: inline-flex; align-items: center; gap: 7px; }
 
   /* ── Header ───────────────────────────────────────────────────── */
   header {
@@ -177,20 +183,20 @@
 </head>
 <body>
   <header>
-    <button class="icon-btn" id="menuBtn" aria-label="對話列表">☰</button>
+    <button class="icon-btn" id="menuBtn" aria-label="對話列表"></button>
     <div class="title" id="title">新對話</div>
     <div class="status"><span class="dot" id="dot"></span><span id="statusText">未連接</span></div>
-    <button class="icon-btn" id="gearBtn" aria-label="設定">⚙</button>
+    <button class="icon-btn" id="gearBtn" aria-label="設定"></button>
   </header>
 
   <div id="stream"></div>
-  <button id="newMsg">⬇ 新訊息</button>
+  <button id="newMsg" class="with-icon"><span class="new-msg-label">新訊息</span></button>
 
   <div id="composer">
-    <button class="round" id="modeBtn" aria-label="切換輸入模式">⌨</button>
+    <button class="round" id="modeBtn" aria-label="切換輸入模式"></button>
     <textarea id="input" rows="1" placeholder="講嘢或者打字…"></textarea>
-    <button class="round" id="sendBtn" aria-label="送出">➤</button>
-    <button class="round" id="micBtn" aria-label="按住說話" style="display:none">🎤</button>
+    <button class="round" id="sendBtn" aria-label="送出"></button>
+    <button class="round" id="micBtn" aria-label="按住說話" style="display:none"></button>
     <button id="holdBtn" style="display:none">按住 說話</button>
   </div>
 
@@ -199,7 +205,7 @@
     <div class="drawer-head">對話</div>
     <div id="sessions"></div>
     <div class="drawer-foot">
-      <button class="btn primary" id="newChatBtn">＋ 開新對話</button>
+      <button class="btn primary with-icon" id="newChatBtn"><span class="new-chat-label">開新對話</span></button>
     </div>
   </aside>
 
@@ -210,6 +216,7 @@
     <label>Token</label>
     <input id="apiToken" placeholder="va_live_…" />
     <div class="row">
+      <button class="btn" id="scanPairBtn" class="with-icon"><span class="scan-label">掃描配對</span></button>
       <button class="btn" id="cancelSettings">取消</button>
       <button class="btn primary" id="saveSettings">儲存並連接</button>
     </div>
@@ -219,6 +226,32 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const stream = $("stream");
+
+  /* ── 圖標集（SVG，線條風格；唔用 emoji）────────────────────── */
+  const ICONS = {
+    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+    sliders: '<path d="M4 7h8M17 7h3M4 17h3M12 17h8"/><circle cx="14.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/>',
+    keyboard: '<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/>',
+    mic: '<rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18.5V21M9 21h6"/>',
+    send: '<path d="M21 3L10.5 13.5M21 3l-6.5 18-4-8-8-4L21 3z"/>',
+    chevronDown: '<path d="M6 9.5l6 6 6-6"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    chat: '<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l2.3-3A8.5 8.5 0 1 1 21 11.5z"/>',
+    check: '<path d="M4.5 12.5l5 5L19.5 7"/>',
+    close: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  };
+  /** 產生 SVG icon markup */
+  function icon(name, cls) {
+    return `<svg class="icon ${cls || ""}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ""}</svg>`;
+  }
+  // 掛上靜態 icon
+  $("menuBtn").innerHTML = icon("menu");
+  $("gearBtn").innerHTML = icon("sliders");
+  $("sendBtn").innerHTML = icon("send");
+  $("micBtn").innerHTML = icon("mic");
+  $("modeBtn").innerHTML = icon("keyboard");
+  $("newMsg").insertAdjacentHTML("afterbegin", icon("chevronDown", "sm"));
+  $("newChatBtn").insertAdjacentHTML("afterbegin", icon("plus", "sm"));
 
   let relayReady = false;
   let polling = null;
@@ -248,7 +281,7 @@
   }
   const now = () => new Date().toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
 
-  // ── Sticky scroll（底部自動滾；睇歷史時保留位置 ＋「新訊息」掣）──
+  // ── Sticky scroll（底部自動滾；睇歷史時保留位置 +「新訊息」掣）──
   stream.addEventListener("scroll", () => {
     atBottom = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 40;
     $("newMsg").style.display = atBottom ? "none" : "block";
@@ -262,7 +295,7 @@
     $("input").style.display = voice ? "none" : "block";
     $("sendBtn").style.display = voice ? "none" : "grid";
     $("holdBtn").style.display = voice ? "block" : "none";
-    $("modeBtn").textContent = voice ? "⌨" : "🎤";
+    $("modeBtn").innerHTML = icon(voice ? "keyboard" : "mic");
   }
   $("modeBtn").onclick = () => setMode(mode === "voice" ? "keyboard" : "voice");
 
@@ -271,7 +304,7 @@
     if (!text.trim()) return;
     addBubble("user", text, now());
     if (!relayReady) {
-      addBubble("sys", "未連接 Mac：撳右上 ⚙ 填 API URL 同 token");
+      addBubble("sys", "未連接 Mac：撳右上「設定」填 API URL 同 token");
       return;
     }
     setStatus("busy", "派緊任務…");
@@ -327,7 +360,7 @@
       await window.__TAURI__.core.invoke("relay_confirm", { requestId, approved });
       shownConfirmId = null;
       if (card) card.remove();
-      addBubble("sys", approved ? "✅ 已批核，等 Mac 繼續" : "🚫 已取消");
+      addBubble("sys", approved ? "已批核，等 Mac 繼續" : "已取消");
     } catch (e) {
       addBubble("err", "回覆確認失敗：" + e);
     }
@@ -433,6 +466,30 @@
 
   // ── 設定 ────────────────────────────────────────────────────────
   $("gearBtn").onclick = () => $("settings").classList.add("open");
+
+  // ── 掃描配對（QR 入面係 apiUrl + token，唔使手打）────────────
+  $("scanPairBtn").onclick = async () => {
+    try {
+      const res = await window.__TAURI__.core.invoke("qr_scan");
+      const payload = JSON.parse(res.text);
+      if (!payload.apiUrl || !payload.token) throw new Error("QR 入面唔係配對資料");
+      await window.__TAURI__.core.invoke("relay_configure", {
+        apiUrl: payload.apiUrl,
+        token: payload.token,
+      });
+      localStorage.setItem("va_api_url", payload.apiUrl);
+      localStorage.setItem("va_token", payload.token);
+      $("apiUrl").value = payload.apiUrl;
+      $("apiToken").value = payload.token;
+      relayReady = true;
+      setStatus("on", "已連接");
+      $("settings").classList.remove("open");
+      addBubble("sys", "配對成功，已連接你嘅 Mac");
+      loadTranscript();
+    } catch (e) {
+      addBubble("sys", "掃描配對失敗：" + e);
+    }
+  };
   $("cancelSettings").onclick = () => $("settings").classList.remove("open");
   $("saveSettings").onclick = async () => {
     const apiUrl = $("apiUrl").value.trim();
@@ -445,7 +502,7 @@
       $("settings").classList.remove("open");
       localStorage.setItem("va_api_url", apiUrl);
       localStorage.setItem("va_token", token);
-      addBubble("sys", "已連接 Mac ✅");
+      addBubble("sys", "已連接 Mac");
       loadTranscript();
     } catch (e) {
       addBubble("err", "設定失敗：" + e);
@@ -466,15 +523,18 @@
   async function checkStt() {
     try {
       const st = await window.__TAURI__.core.invoke("stt_status");
-      if (st.auth !== "authorized") {
+      if (st.auth === "denied" || st.auth === "restricted") {
+        // 真係被拒 → 先切鍵盤（notDetermined 只係「未問過」，第一次按住會彈權限）
         setMode("keyboard");
         addBubble("sys", "未授權語音辨識（設定 → 隱私權與安全性 → 語音辨識），暫時用鍵盤輸入");
+      } else if (st.auth === "notDetermined") {
+        addBubble("sys", "第一次按住「說話」時會問你要唔要語音辨識權限，撳允許就可以用 voice 輸入");
       } else if (!st.zhHKAvailable) {
         setMode("keyboard");
         addBubble("sys", "呢部裝置暫時用唔到粵語語音辨識，暫時用鍵盤輸入");
       }
     } catch (e) {
-      setMode("keyboard");
+      /* 查唔到就照常用，唔好阻住用戶 */
     }
   }
 
@@ -482,6 +542,21 @@
     setMode("voice");
     checkStt();
     renderSessions();
+    // 0) build 有燒入 relay → 直接用，唔使人手填（token 留喺 Rust 側，前端唔使知）
+    let baked = null;
+    try {
+      baked = await window.__TAURI__.core.invoke("relay_configured");
+    } catch (e) { /* 冇就照舊流程 */ }
+
+    if (baked && baked.configured) {
+      $("apiUrl").value = baked.apiUrl;
+      relayReady = true;
+      setStatus("on", "已連接");
+      addBubble("sys", "已連接你嘅 Mac\\n可以直接撳住「說話」派任務（第一次會問語音權限）");
+      loadTranscript();
+      return;
+    }
+
     const savedUrl = localStorage.getItem("va_api_url");
     const savedToken = localStorage.getItem("va_token");
     if (savedUrl && savedToken) {
@@ -496,7 +571,7 @@
     } else {
       setStatus("off", "未連接");
       // 第一次開：自動彈設定面板，講清楚要填乜（真機冇人幫你寫 config 檔）
-      addBubble("sys", "歡迎用 Voice Agent 👋\n\n手機唔會直接跑 Agent —— 你嘅任務會經雲端派去你 Mac 上面執行。\n\n撳右上 ⚙ 填 Relay API URL 同 Token 就得（Mac 上面睇：cat runtime/relay-api/.relay-token）");
+      addBubble("sys", "歡迎用 Voice Agent 👋\n\n手機唔會直接跑 Agent —— 你嘅任務會經雲端派去你 Mac 上面執行。\n\n撳「設定」→「掃描配對」，對住 Mac 上面嘅配對 QR 掃一下就得（唔使打字）");
       $("settings").classList.add("open");
     }
   })();
