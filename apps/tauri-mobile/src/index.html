@@ -216,7 +216,8 @@
     <label>Token</label>
     <input id="apiToken" placeholder="va_live_…" />
     <div class="row">
-      <button class="btn" id="scanPairBtn" class="with-icon"><span class="scan-label">掃描配對</span></button>
+      <button class="btn with-icon" id="scanPairBtn"><span class="scan-label">掃描配對</span></button>
+      <button class="btn" id="pastePairBtn"><span class="paste-label">貼上 Token</span></button>
       <button class="btn" id="cancelSettings">取消</button>
       <button class="btn primary" id="saveSettings">儲存並連接</button>
     </div>
@@ -467,8 +468,30 @@
   // ── 設定 ────────────────────────────────────────────────────────
   $("gearBtn").onclick = () => $("settings").classList.add("open");
 
+  // 貼上 Token（保險方案：相機唔好用時，喺 Mac 複製 token → 呢度貼上）
+  $("pastePairBtn").onclick = async () => {
+    try {
+      const token = (await navigator.clipboard.readText()).trim();
+      if (!token) throw new Error("剪貼簿係空嘅（喺 Mac 上面 copy 埋 token）");
+      const apiUrl = $("apiUrl").value.trim() || "https://nqh8j1u2a0.execute-api.ap-southeast-1.amazonaws.com";
+      await window.__TAURI__.core.invoke("relay_configure", { apiUrl, token });
+      localStorage.setItem("va_api_url", apiUrl);
+      localStorage.setItem("va_token", token);
+      $("apiToken").value = token;
+      relayReady = true;
+      setStatus("on", "已連接");
+      $("settings").classList.remove("open");
+      addBubble("sys", "已用剪貼簿嘅 Token 連接成功");
+      loadTranscript();
+    } catch (e) {
+      addBubble("sys", "貼上失敗：" + e);
+    }
+  };
+
   // ── 掃描配對（QR 入面係 apiUrl + token，唔使手打）────────────
   $("scanPairBtn").onclick = async () => {
+    setStatus("busy", "掃描中…");
+    addBubble("sys", "開緊相機…對住 Mac 上面嘅配對 QR 掃描（撳「取消」可以返回）");
     try {
       const res = await window.__TAURI__.core.invoke("qr_scan");
       const payload = JSON.parse(res.text);
@@ -487,6 +510,7 @@
       addBubble("sys", "配對成功，已連接你嘅 Mac");
       loadTranscript();
     } catch (e) {
+      setStatus(relayReady ? "on" : "off", relayReady ? "已連接" : "未連接");
       addBubble("sys", "掃描配對失敗：" + e);
     }
   };
