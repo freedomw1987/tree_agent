@@ -10,8 +10,9 @@ class QrScanPlugin: Plugin {
   private var settled = false
   /// 當前嘅 invoke（delegate 回調要用）
   private var currentInvoke: Invoke?
-  /// 相機 modal 視圖（清理時要收起）
-  private var scannerVC: UIViewController?
+  /// 取消掣 ＋ 提示文字（清理時要移除）
+  private var cancelButton: UIButton?
+  private var hintLabel: UILabel?
 
   @objc public func scan(_ invoke: Invoke) throws {
     self.settled = false
@@ -67,19 +68,22 @@ class QrScanPlugin: Plugin {
     output.setMetadataObjectsDelegate(self, queue: .main)
     output.metadataObjectTypes = [.qr]
 
-    // ⚠️ 一定要用 modal view controller 呈現：Tauri 嘅 webview 係全屏，
-    //    直接 addSublayer 落 viewController.view 會被 webview 蓋住（用戶見唔到相機）
-    let scannerVC = UIViewController()
-    scannerVC.view.backgroundColor = .black
+    // ⚠️ 唔可以用 present()：Tauri 嘅 root view controller present 會 crash
+    //    （實測：_addChildModalViewController → SIGABRT，App 即刻彈返出嚟）
+    //    改為直接加 layer 落 window —— window.layer 喺 webview 上面，一定見到
+    guard let window = self.manager.viewController?.view.window else {
+      invoke.reject("攞唔到 App 視窗")
+      return
+    }
+
     let preview = AVCaptureVideoPreviewLayer(session: session)
     preview.videoGravity = .resizeAspectFill
-    preview.frame = scannerVC.view.bounds
-    scannerVC.view.layer.addSublayer(preview)
+    preview.frame = window.bounds
+    window.layer.addSublayer(preview)
     self.previewLayer = preview
     self.session = session
-    self.scannerVC = scannerVC
 
-    // 取消掣
+    // 取消掣（加喺 window 上面）
     let cancel = UIButton(type: .system)
     cancel.setTitle("取消", for: .normal)
     cancel.setTitleColor(.white, for: .normal)
@@ -88,7 +92,8 @@ class QrScanPlugin: Plugin {
     cancel.layer.cornerRadius = 10
     cancel.frame = CGRect(x: 16, y: 60, width: 84, height: 44)
     cancel.addTarget(self, action: #selector(self.cancelScan), for: .touchUpInside)
-    scannerVC.view.addSubview(cancel)
+    window.addSubview(cancel)
+    self.cancelButton = cancel
 
     // 提示文字
     let hint = UILabel()
@@ -96,16 +101,11 @@ class QrScanPlugin: Plugin {
     hint.textColor = .white
     hint.font = UIFont.systemFont(ofSize: 15, weight: .medium)
     hint.textAlignment = .center
-    hint.frame = CGRect(x: 0, y: 120, width: scannerVC.view.bounds.width, height: 24)
-    scannerVC.view.addSubview(hint)
+    hint.frame = CGRect(x: 0, y: 116, width: window.bounds.width, height: 24)
+    window.addSubview(hint)
+    self.hintLabel = hint
 
-    guard let root = self.manager.viewController else {
-      invoke.reject("攞唔到畫面")
-      return
-    }
-    root.present(scannerVC, animated: true) { [weak self] in
-      self?.session?.startRunning()
-    }
+    session.startRunning()
 
     // 45 秒 timeout（掃唔到就唔好 hang 住）
     DispatchQueue.main.asyncAfter(deadline: .now() + 45) { [weak self] in
@@ -147,10 +147,10 @@ class QrScanPlugin: Plugin {
     self.session = nil
     self.previewLayer?.removeFromSuperlayer()
     self.previewLayer = nil
-    if let vc = self.scannerVC {
-      vc.dismiss(animated: true)
-      self.scannerVC = nil
-    }
+    self.cancelButton?.removeFromSuperview()
+    self.cancelButton = nil
+    self.hintLabel?.removeFromSuperview()
+    self.hintLabel = nil
   }
 }
 
