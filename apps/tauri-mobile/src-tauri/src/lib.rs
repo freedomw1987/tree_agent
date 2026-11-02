@@ -154,12 +154,23 @@ async fn stt_and_qr_selftest(app: tauri::AppHandle) {
         Ok(v) => selftest_log(&app, &format!("[qr] 狀態：{v}")),
         Err(e) => selftest_log(&app, &format!("[qr] 狀態查詢失敗：{e}")),
     }
-    match app.qrscan().scan() {
-        Ok(r) => selftest_log(
+    // 掃描會阻塞 → 放喺 blocking thread；同時 3 秒後查一次 session 狀態
+    let probe = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        match probe.qrscan().status() {
+            Ok(v) => selftest_log(&probe, &format!("[qr] 3 秒後狀態：{v}")),
+            Err(e) => selftest_log(&probe, &format!("[qr] 狀態查詢失敗：{e}")),
+        }
+    });
+    let handle = app.clone();
+    match tauri::async_runtime::spawn_blocking(move || handle.qrscan().scan()).await {
+        Ok(Ok(r)) => selftest_log(
             &app,
             &format!("[qr] 掃到：{}", r.text.chars().take(60).collect::<String>()),
         ),
-        Err(e) => selftest_log(&app, &format!("[qr] 錯誤：{e}")),
+        Ok(Err(e)) => selftest_log(&app, &format!("[qr] 錯誤：{e}")),
+        Err(e) => selftest_log(&app, &format!("[qr] 掃描 thread 爆咗：{e}")),
     }
 }
 

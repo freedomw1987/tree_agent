@@ -24,10 +24,22 @@ class QrScanPlugin: Plugin {
     case .restricted: authText = "restricted"
     default: authText = "notDetermined"
     }
+    let session = self.session
+    var inputCount = 0
+    var outputCount = 0
+    if let session = session {
+      inputCount = session.inputs.count
+      outputCount = session.outputs.count
+    }
+    let position = AVCaptureDevice.default(for: .video)?.position == .front ? "front" : "back"
     invoke.resolve([
       "auth": authText,
       "hasCamera": AVCaptureDevice.default(for: .video) != nil,
-      "scanning": self.session != nil,
+      "scanning": session != nil,
+      "sessionRunning": session?.isRunning ?? false,
+      "inputs": inputCount,
+      "outputs": outputCount,
+      "camera": position,
     ])
   }
 
@@ -101,6 +113,10 @@ class QrScanPlugin: Plugin {
     preview.videoGravity = .resizeAspectFill
     preview.frame = hostView.bounds
     hostView.layer.addSublayer(preview)
+    // 有時 hostView 仲未 layout 完 → 等一拍再 set 返 frame
+    DispatchQueue.main.async {
+      preview.frame = hostView.bounds
+    }
     self.previewLayer = preview
     self.session = session
 
@@ -109,7 +125,10 @@ class QrScanPlugin: Plugin {
     hostView.addGestureRecognizer(tap)
     self.tapRecognizer = tap
 
-    session.startRunning()
+    // ⚠️ startRunning() 唔可以喺主執行緒 call（會 block UI，甚至 session 起唔到）
+    DispatchQueue.global(qos: .userInitiated).async {
+      session.startRunning()
+    }
 
     // 45 秒 timeout（掃唔到就唔好 hang 住）
     DispatchQueue.main.asyncAfter(deadline: .now() + 45) { [weak self] in
