@@ -495,6 +495,9 @@
       } catch (e) { /* 之后再连 */ }
     } else {
       setStatus("off", "未連接");
+      // 第一次開：自動彈設定面板，講清楚要填乜（真機冇人幫你寫 config 檔）
+      addBubble("sys", "歡迎用 Voice Agent 👋\n\n手機唔會直接跑 Agent —— 你嘅任務會經雲端派去你 Mac 上面執行。\n\n撳右上 ⚙ 填 Relay API URL 同 Token 就得（Mac 上面睇：cat runtime/relay-api/.relay-token）");
+      $("settings").classList.add("open");
     }
   })();
 </script>

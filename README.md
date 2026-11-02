@@ -40,6 +40,8 @@ bash scripts/check-all.sh
 
 # 手機 App（iOS simulator）
 cd apps/tauri-mobile && npx tauri ios build -t aarch64-sim && npx tauri ios dev
+# iOS 真機部署（檢查環境 ＋ 寫 team id ＋ 逐步指引）
+bash scripts/ios-device-setup.sh --team <TEAM_ID>   # 詳見 docs/deploy-ios-device.md
 # iOS STT plugin（改完 Swift 要重新 build 先生效）
 cd ../../plugins/tauri-plugin-ios-stt && swift build --package-path ios 2>/dev/null || true
 
