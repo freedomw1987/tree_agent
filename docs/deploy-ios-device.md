@@ -84,6 +84,33 @@ xcrun devicectl device install app --device <UDID> "Voice Agent.app"
 
 ---
 
+## 二之二、撞到錯誤？常見幾個
+
+### `DeveloperAPIServiceErrorDomain Code=5 "PLA Update available"`
+
+> *You currently don't have access to this membership resource. To resolve this issue, agree to the latest Program License Agreement in your developer account.*
+
+**原因**：Apple 帳戶未接受最新版《Program License Agreement》—— 未接受之前，certificate / profile / device 全部會被 API 擋。
+
+**點解**：
+1. 用 **Account Holder** 帳戶登入 https://developer.apple.com/account/
+2. 頁面頂部橫幅 **"Program License Agreement"** → **Review** → 捲到底 → **Agree**
+   （冇橫幅：右上角名 → Account Holder → Agreements；可能仲要簽 **Paid Applications Agreement**）
+3. **重啟 Xcode**（quit 再開，令佢重新攞授權）
+
+> 普通成員撳 Agree 會話「無權限」—— 呢步一定要 Account Holder 做。
+
+### 其他常見
+
+| 症狀 | 原因 | 點做 |
+|---|---|---|
+| `No signing certificate "Apple Development" found` | 未建證書 | Xcode → Manage Certificates → ＋ Apple Development |
+| `Provisioning profile ... doesn't include signing certificate` | profile 冇對應證書 | 刪舊 profile → 部機插線 → Xcode → Devices → 自動重生 |
+| `Device is not registered` | UDID 未註冊 | 部機插線解鎖 → Xcode → Window → Devices → ＋ |
+| `Unable to find a destination` | 冇揀中裝置 | `npx tauri ios dev --device` 會列出現有裝置 |
+
+---
+
 ## 三、Mac 上面要行住 sidecar（Pi SDK 喺 Mac，唔喺手機）
 
 手機 **唔會** 直接跑 Agent —— 任務經 AWS relay 去你 Mac 上面嘅 sidecar 執行。
