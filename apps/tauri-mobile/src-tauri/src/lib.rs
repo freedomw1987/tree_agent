@@ -124,7 +124,15 @@ fn app_info(state: State<'_, RelayState>) -> serde_json::Value {
 
 /// 自檢 log（寫入 App 資料目錄，simulator 上面可以直接讀）
 fn selftest_log(app: &tauri::AppHandle, line: &str) {
-    if let Ok(dir) = app.path().app_data_dir() {
+    // Documents（iOS 上一定存在，而且可以由 Mac 讀出嚟查）
+    let mut dirs = Vec::new();
+    if let Ok(d) = app.path().document_dir() {
+        dirs.push(d);
+    }
+    if let Ok(d) = app.path().app_data_dir() {
+        dirs.push(d);
+    }
+    for dir in dirs {
         let path = dir.join("selftest.log");
         if let Ok(mut f) = std::fs::OpenOptions::new()
             .create(true)
@@ -137,6 +145,22 @@ fn selftest_log(app: &tauri::AppHandle, line: &str) {
         }
     }
     println!("{line}");
+}
+
+/// 自動測試：QR 掃描 ＋ STT（開機就跑，方便唔使撳掣）
+async fn stt_and_qr_selftest(app: tauri::AppHandle) {
+    selftest_log(&app, "[qr] 開始自動掃描測試");
+    match app.qrscan().status() {
+        Ok(v) => selftest_log(&app, &format!("[qr] 狀態：{v}")),
+        Err(e) => selftest_log(&app, &format!("[qr] 狀態查詢失敗：{e}")),
+    }
+    match app.qrscan().scan() {
+        Ok(r) => selftest_log(
+            &app,
+            &format!("[qr] 掃到：{}", r.text.chars().take(60).collect::<String>()),
+        ),
+        Err(e) => selftest_log(&app, &format!("[qr] 錯誤：{e}")),
+    }
 }
 
 /// STT 自檢：真係開 mic 錄 5 秒，再停低拎文字
@@ -226,6 +250,14 @@ pub fn run() {
         .plugin(tauri_plugin_ios_qrscan::init())
         .manage(RelayState::new())
         .setup(|app| {
+            // 0) 編譯期開關（測試用）：VA_QR_TEST → 開機自動掃描
+            if option_env!("VA_QR_TEST").is_some() {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    stt_and_qr_selftest(handle).await;
+                });
+            }
+
             // 1) 執行時 config 檔（優先）
             if let Some(path) = relay_config_file(app.handle()) {
                 if let Ok(text) = std::fs::read_to_string(&path) {

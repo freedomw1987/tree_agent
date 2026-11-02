@@ -2,6 +2,7 @@ import AVFoundation
 import Foundation
 import Tauri
 import UIKit
+import WebKit
 
 /// iOS 相機 QR 掃描（用嚟掃「手機配對」QR）
 class QrScanPlugin: Plugin {
@@ -10,9 +11,25 @@ class QrScanPlugin: Plugin {
   private var settled = false
   /// 當前嘅 invoke（delegate 回調要用）
   private var currentInvoke: Invoke?
-  /// 取消掣 ＋ 提示文字（清理時要移除）
-  private var cancelButton: UIButton?
-  private var hintLabel: UILabel?
+  /// 取消手勢（清理時要移除）
+  private var tapRecognizer: UITapGestureRecognizer?
+
+  /// 狀態查詢（相機權限 ＋ 裝置有冇相機）
+  @objc public func status(_ invoke: Invoke) throws {
+    let auth = AVCaptureDevice.authorizationStatus(for: .video)
+    let authText: String
+    switch auth {
+    case .authorized: authText = "authorized"
+    case .denied: authText = "denied"
+    case .restricted: authText = "restricted"
+    default: authText = "notDetermined"
+    }
+    invoke.resolve([
+      "auth": authText,
+      "hasCamera": AVCaptureDevice.default(for: .video) != nil,
+      "scanning": self.session != nil,
+    ])
+  }
 
   @objc public func scan(_ invoke: Invoke) throws {
     self.settled = false
@@ -40,11 +57,15 @@ class QrScanPlugin: Plugin {
     self.currentInvoke = invoke
     guard let device = AVCaptureDevice.default(for: .video),
           let input = try? AVCaptureDeviceInput(device: device),
-          let container = self.manager.viewController?.view
+          let rootView = self.manager.viewController?.view
     else {
       invoke.reject("開唔到相機（simulator 冇相機；請用真機）")
       return
     }
+    // ⚠️ 唔好將 UIView 加落 window（UIKit 會斷言 → SIGABRT）
+    //    只加 CALayer（預覽層）落 window.layer → 喺 webview 上面，唔會斷言
+    let window = rootView.window ?? self.manager.viewController?.view.window
+    let hostView: UIView = window ?? rootView
 
     let session = AVCaptureSession()
     session.beginConfiguration()
@@ -78,32 +99,15 @@ class QrScanPlugin: Plugin {
 
     let preview = AVCaptureVideoPreviewLayer(session: session)
     preview.videoGravity = .resizeAspectFill
-    preview.frame = window.bounds
-    window.layer.addSublayer(preview)
+    preview.frame = hostView.bounds
+    hostView.layer.addSublayer(preview)
     self.previewLayer = preview
     self.session = session
 
-    // 取消掣（加喺 window 上面）
-    let cancel = UIButton(type: .system)
-    cancel.setTitle("取消", for: .normal)
-    cancel.setTitleColor(.white, for: .normal)
-    cancel.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-    cancel.backgroundColor = UIColor.black.withAlphaComponent(0.45)
-    cancel.layer.cornerRadius = 10
-    cancel.frame = CGRect(x: 16, y: 60, width: 84, height: 44)
-    cancel.addTarget(self, action: #selector(self.cancelScan), for: .touchUpInside)
-    window.addSubview(cancel)
-    self.cancelButton = cancel
-
-    // 提示文字
-    let hint = UILabel()
-    hint.text = "對住 Mac 上面嘅配對 QR 掃描"
-    hint.textColor = .white
-    hint.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-    hint.textAlignment = .center
-    hint.frame = CGRect(x: 0, y: 116, width: window.bounds.width, height: 24)
-    window.addSubview(hint)
-    self.hintLabel = hint
+    // 取消：撳畫面任何地方（手勢，唔加 UIView → 唔會觸發 UIKit 斷言）
+    let tap = UITapGestureRecognizer(target: self, action: #selector(self.cancelScan))
+    hostView.addGestureRecognizer(tap)
+    self.tapRecognizer = tap
 
     session.startRunning()
 
@@ -147,10 +151,10 @@ class QrScanPlugin: Plugin {
     self.session = nil
     self.previewLayer?.removeFromSuperlayer()
     self.previewLayer = nil
-    self.cancelButton?.removeFromSuperview()
-    self.cancelButton = nil
-    self.hintLabel?.removeFromSuperview()
-    self.hintLabel = nil
+    if let tap = self.tapRecognizer {
+      tap.view?.removeGestureRecognizer(tap)
+      self.tapRecognizer = nil
+    }
   }
 }
 
