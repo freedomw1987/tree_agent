@@ -42,6 +42,22 @@ pub struct QrScan<R: Runtime> {
 }
 
 impl<R: Runtime> QrScan<R> {
+    /// 取消掃描
+    pub fn cancel(&self) -> Result<()> {
+        #[cfg(target_os = "ios")]
+        {
+            let handle = self.handle.as_ref().ok_or(Error::NotInitialised)?;
+            let _value: serde_json::Value = handle
+                .run_mobile_plugin("cancel", serde_json::json!({}))
+                .map_err(|e| Error::Swift(e.to_string()))?;
+            Ok(())
+        }
+        #[cfg(not(target_os = "ios"))]
+        {
+            Err(Error::UnsupportedPlatform)
+        }
+    }
+
     /// 查相機權限 ＋ 裝置狀態
     pub fn status(&self) -> Result<serde_json::Value> {
         #[cfg(target_os = "ios")]

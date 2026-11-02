@@ -14,6 +14,15 @@ class QrScanPlugin: Plugin {
   /// 取消手勢（清理時要移除）
   private var tapRecognizer: UITapGestureRecognizer?
 
+  /// 取消掃描（前端按「取消掃描」掣時叫）
+  @objc public func cancel(_ invoke: Invoke) throws {
+    if self.settled {
+      invoke.resolve(["cancelled": true])
+      return
+    }
+    self.finish(invoke, text: nil, error: "已取消掃描")
+  }
+
   /// 狀態查詢（相機權限 ＋ 裝置有冇相機）
   @objc public func status(_ invoke: Invoke) throws {
     let auth = AVCaptureDevice.authorizationStatus(for: .video)
@@ -109,18 +118,32 @@ class QrScanPlugin: Plugin {
       return
     }
 
+    // 底部留 150pt 俾 App 自己嘅界面（前端「取消掃描」掣就喺嗰度），
+    // 唔好遮死，否則用戶會被困喺相機入面
+    let bottomInset: CGFloat = 150
+    let previewFrame = CGRect(
+      x: 0,
+      y: 0,
+      width: hostView.bounds.width,
+      height: max(0, hostView.bounds.height - bottomInset)
+    )
     let preview = AVCaptureVideoPreviewLayer(session: session)
     preview.videoGravity = .resizeAspectFill
-    preview.frame = hostView.bounds
+    preview.frame = previewFrame
     hostView.layer.addSublayer(preview)
     // 有時 hostView 仲未 layout 完 → 等一拍再 set 返 frame
     DispatchQueue.main.async {
-      preview.frame = hostView.bounds
+      preview.frame = CGRect(
+        x: 0,
+        y: 0,
+        width: hostView.bounds.width,
+        height: max(0, hostView.bounds.height - bottomInset)
+      )
     }
     self.previewLayer = preview
     self.session = session
 
-    // 取消：撳畫面任何地方（手勢，唔加 UIView → 唔會觸發 UIKit 斷言）
+    // 取消：撳相機畫面任何地方（手勢，唔加 UIView → 唔會觸發 UIKit 斷言）
     let tap = UITapGestureRecognizer(target: self, action: #selector(self.cancelScan))
     hostView.addGestureRecognizer(tap)
     self.tapRecognizer = tap

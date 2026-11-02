@@ -161,6 +161,21 @@
   }
   .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+  /* ── 掃描提示條（底部留白俾相機預覽）──────────────────────── */
+  #scanBar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    display: none; align-items: center; gap: 12px;
+  }
+  #scanBar.show { display: flex; }
+  #scanBar .txt { flex: 1; font-size: 14px; }
+  #scanBar .txt small { display: block; color: var(--muted-foreground); font-size: 12px; }
+  #scanBar button {
+    border: 1px solid var(--border); background: var(--muted); color: var(--foreground);
+    border-radius: var(--radius-control); padding: 10px 14px; font-size: 14px;
+  }
+
   /* ── 設定 sheet ─────────────────────────────────────────────── */
   #settings {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
@@ -208,6 +223,11 @@
       <button class="btn primary with-icon" id="newChatBtn"><span class="new-chat-label">開新對話</span></button>
     </div>
   </aside>
+
+  <div id="scanBar">
+    <div class="txt">掃描中… 對住 Mac 上面嘅配對 QR<small>撳相機畫面或者撳右邊都可以取消</small></div>
+    <button id="cancelScanBtn">取消掃描</button>
+  </div>
 
   <div id="settings">
     <h3>連接 Mac</h3>
@@ -489,9 +509,22 @@
   };
 
   // ── 掃描配對（QR 入面係 apiUrl + token，唔使手打）────────────
+  function showScanBar(on) {
+    $("scanBar").classList.toggle("show", !!on);
+    $("composer").classList.toggle("hidden", !!on);
+  }
+  $("cancelScanBtn").onclick = async () => {
+    try {
+      await window.__TAURI__.core.invoke("qr_cancel");
+    } catch (e) { /* 已經完咗 */ }
+    showScanBar(false);
+    setStatus(relayReady ? "on" : "off", relayReady ? "已就緒" : "未連接");
+    addBubble("sys", "已取消掃描");
+  };
+
   $("scanPairBtn").onclick = async () => {
     setStatus("busy", "掃描中…");
-    addBubble("sys", "開緊相機…對住 Mac 上面嘅配對 QR 掃描（撳「取消」可以返回）");
+    showScanBar(true);
     try {
       const res = await window.__TAURI__.core.invoke("qr_scan");
       const payload = JSON.parse(res.text);
@@ -507,10 +540,12 @@
       relayReady = true;
       setStatus("on", "已連接");
       $("settings").classList.remove("open");
+      showScanBar(false);
       addBubble("sys", "配對成功，已連接你嘅 Mac");
       loadTranscript();
     } catch (e) {
-      setStatus(relayReady ? "on" : "off", relayReady ? "已連接" : "未連接");
+      setStatus(relayReady ? "on" : "off", relayReady ? "已就緒" : "未連接");
+      showScanBar(false);
       addBubble("sys", "掃描配對失敗：" + e);
     }
   };

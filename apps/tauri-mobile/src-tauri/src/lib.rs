@@ -79,6 +79,13 @@ async fn qr_scan(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     Ok(serde_json::to_value(result).map_err(|e| e.to_string())?)
 }
 
+/// 取消 QR 掃描（前端「取消掃描」掣）
+#[tauri::command]
+async fn qr_cancel(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    app.qrscan().cancel().map_err(|e| e.to_string())?;
+    Ok(json!({ "ok": true }))
+}
+
 /// 語音辨識狀態（權積 ＋ recognizer 可用性）
 #[tauri::command]
 async fn stt_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
@@ -312,6 +319,7 @@ pub fn run() {
             stt_stop,
             stt_status,
             qr_scan,
+            qr_cancel,
             app_info
         ]);
 
