@@ -17,3 +17,4 @@
 | 日期 | 變更 | 原因 |
 |------|------|------|
 | 2026-11-01 | 建立（來源：dav-planner 需求訪談） | 首次澄清 |
+| 2026-11-01 | 實測結論回填 | **本地 TTS 已完成**（plugins/tauri-plugin-ios-tts/）：AVSpeechSynthesizer，粵語 voice 優先（yue-HK → zh-HK → zh-TW → en-US），音訊階段 .play… |

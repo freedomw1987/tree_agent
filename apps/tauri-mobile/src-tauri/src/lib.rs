@@ -2,6 +2,7 @@ pub mod relay;
 
 use relay::{RelayConfig, RelayState};
 use tauri_plugin_ios_qrscan::QrScanExt;
+use tauri_plugin_ios_tts::TtsExt;
 use tauri_plugin_ios_stt::SttExt;
 use serde_json::json;
 use std::path::PathBuf;
@@ -84,6 +85,30 @@ async fn qr_scan(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
 async fn qr_cancel(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     app.qrscan().cancel().map_err(|e| e.to_string())?;
     Ok(json!({ "ok": true }))
+}
+
+/// 讀出文字（本地 TTS；預設粵語 yue-HK）
+#[tauri::command]
+async fn tts_speak(
+    app: tauri::AppHandle,
+    text: String,
+    locale: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let res = app.tts().speak(&text, locale, None).map_err(|e| e.to_string())?;
+    Ok(serde_json::to_value(res).map_err(|e| e.to_string())?)
+}
+
+/// 停低讀出
+#[tauri::command]
+async fn tts_stop(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    app.tts().stop().map_err(|e| e.to_string())?;
+    Ok(json!({ "ok": true }))
+}
+
+/// TTS 狀態（裝置有咩粵語 voice）
+#[tauri::command]
+async fn tts_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    app.tts().status().map_err(|e| e.to_string())
 }
 
 /// 語音辨識狀態（權積 ＋ recognizer 可用性）
@@ -266,6 +291,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_ios_stt::init())
         .plugin(tauri_plugin_ios_qrscan::init())
+        .plugin(tauri_plugin_ios_tts::init())
         .manage(RelayState::new())
         .setup(|app| {
             // 0) 編譯期開關（測試用）：VA_QR_TEST → 開機自動掃描
@@ -318,6 +344,9 @@ pub fn run() {
             stt_start,
             stt_stop,
             stt_status,
+            tts_speak,
+            tts_stop,
+            tts_status,
             qr_scan,
             qr_cancel,
             app_info

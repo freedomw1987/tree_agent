@@ -135,6 +135,14 @@
   .confirm-actions { display: flex; gap: 9px; }
   .confirm-actions button { flex: 1; border-radius: var(--radius-control); border: 1px solid var(--border); background: var(--muted); padding: 10px; font-size: 14px; }
   .confirm-actions button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  /* 朗讀掣（每條 Agent 回覆右下角） */
+  .speak-btn {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground);
+    border-radius: 999px; padding: 4px 10px; font-size: 12px; margin-top: 2px;
+  }
+  .speak-btn.on { color: var(--primary); border-color: rgba(47,107,255,.45); background: rgba(47,107,255,.07); }
+  .speak-btn .icon { width: 14px; height: 14px; }
 
   /* ── 抽屜（session）─────────────────────────────────────────── */
   #scrim { position: fixed; inset: 0; background: rgba(16,24,40,.35); z-index: 20; display: none; }
@@ -241,6 +249,10 @@
       <button class="btn" id="cancelSettings">取消</button>
       <button class="btn primary" id="saveSettings">儲存並連接</button>
     </div>
+    <label style="display:flex;align-items:center;gap:9px;margin-top:16px;font-size:14px;color:var(--foreground)">
+      <input type="checkbox" id="autoSpeak" style="width:18px;height:18px" />
+      自動讀出 Agent 嘅回覆（本地 TTS，粵語優先）
+    </label>
     <div class="hint">手機唔會直接跑 Agent：任務經呢度派去你 Mac 上面嘅 sidecar 執行，結果再返嚟。</div>
   </div>
 
@@ -259,6 +271,8 @@
     plus: '<path d="M12 5v14M5 12h14"/>',
     chat: '<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l2.3-3A8.5 8.5 0 1 1 21 11.5z"/>',
     check: '<path d="M4.5 12.5l5 5L19.5 7"/>',
+    speaker: '<path d="M11 5L6.5 9H3v6h3.5L11 19V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
+    speakerOff: '<path d="M11 5L6.5 9H3v6h3.5L11 19V5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
     close: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   };
   /** 產生 SVG icon markup */
@@ -281,11 +295,41 @@
   let sessions = [];
 
   // ── 訊息 ───────────────────────────────────────────────────────
+  let autoSpeak = localStorage.getItem("va_auto_speak") === "1";
+
+  /** 讀出文字（本地 TTS） */
+  async function speak(text, btn) {
+    try {
+      const res = await window.__TAURI__.core.invoke("tts_speak", { text });
+      if (btn) {
+        btn.classList.add("on");
+        btn.innerHTML = icon("speaker", "sm") + "讀緊";
+        setTimeout(() => {
+          btn.classList.remove("on");
+          btn.innerHTML = icon("speaker", "sm") + "讀出嚟";
+        }, Math.max(1200, text.length * 120));
+      }
+      return res;
+    } catch (e) {
+      if (btn) btn.innerHTML = icon("speakerOff", "sm") + "讀唔到";
+      addBubble("sys", "語音輸出未用得：" + e);
+    }
+  }
+
   function addBubble(kind, text, meta) {
     const div = document.createElement("div");
     div.className = "bubble " + kind;
     div.textContent = text;
     stream.appendChild(div);
+    // Agent 回覆：加「讀出嚟」掣
+    if (kind === "agent" && text && text.length > 1) {
+      const btn = document.createElement("button");
+      btn.className = "speak-btn";
+      btn.innerHTML = icon("speaker", "sm") + "讀出嚟";
+      btn.onclick = () => speak(text, btn);
+      stream.appendChild(btn);
+      if (autoSpeak) setTimeout(() => speak(text, btn), 250);
+    }
     if (meta) {
       const m = document.createElement("div");
       m.className = "meta" + (kind === "user" ? " right" : "");
@@ -550,6 +594,11 @@
     }
   };
   $("cancelSettings").onclick = () => $("settings").classList.remove("open");
+  $("autoSpeak").checked = autoSpeak;
+  $("autoSpeak").onchange = (e) => {
+    autoSpeak = e.target.checked;
+    localStorage.setItem("va_auto_speak", autoSpeak ? "1" : "0");
+  };
   $("saveSettings").onclick = async () => {
     const apiUrl = $("apiUrl").value.trim();
     const token = $("apiToken").value.trim();

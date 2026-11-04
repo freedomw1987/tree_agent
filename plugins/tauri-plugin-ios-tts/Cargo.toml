@@ -1,0 +1,17 @@
+[package]
+name = "tauri-plugin-ios-tts"
+version = "0.1.0"
+edition = "2021"
+description = "iOS 本地語音輸出（TTS）plugin：AVSpeechSynthesizer，優先粵語"
+license = "MIT"
+links = "tauri-plugin-ios-tts"
+build = "build.rs"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

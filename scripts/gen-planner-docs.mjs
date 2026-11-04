@@ -299,6 +299,9 @@ const items = [
     id: "M00-US-105",
     type: "US",
     module: "M01-M02",
+    status: "等待校驗",
+    conclusion:
+      "**本地 TTS 已完成**（plugins/tauri-plugin-ios-tts/）：AVSpeechSynthesizer，粵語 voice 優先（yue-HK → zh-HK → zh-TW → en-US），音訊階段 .playback + .spokenAudio（靜音掣都出聲，符合「走路時聽」）。App 端：每條 Agent 回覆有「讀出嚟」掣 ＋ 設定可開「自動讀出」；command：tts_speak / tts_stop / tts_status。**未做**：**AWS Polly 路徑**（Hiujin 粵語，聲質好啲但要經 relay 傳 mp3 落手機播 —— 等推播憑證同音訊方案一齊做）",
     title: "語音回覆（TTS = AWS Polly → App 播放）",
     phase: "① 語音對話 loop",
     priority: "P1",

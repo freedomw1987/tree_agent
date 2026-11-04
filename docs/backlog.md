@@ -38,7 +38,7 @@
 | M00-US-102 | US | M01 | 語音輸入（device native STT + 可編輯文字） | 8 條 BDD + DoD ｜ [md](ac/M00-US-102.md) ｜ [html](ac/M00-US-102.html) | P0 | 5 | 等待校驗 | SPIKE-002, M00-US-101 |
 | M00-US-103 | US | M03 | Mac sidecar：Pi SDK runtime host（Tauri sidecar = Node/Bun process） | 7 條 BDD + DoD ｜ [md](ac/M00-US-103.md) ｜ [html](ac/M00-US-103.html) | P0 | 8 | 等待校驗 | — |
 | M00-US-104 | US | M02 | AWS relay v1 + transcript 持久化（App ⇄ Mac 通道 + 冪等） | 5 條 BDD + DoD ｜ [md](ac/M00-US-104.md) ｜ [html](ac/M00-US-104.html) | P0 | 8 | 等待校驗 | SPIKE-001, M00-US-101, M00-US-103 |
-| M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | PENDING | M00-US-104 |
+| M00-US-105 | US | M01-M02 | 語音回覆（TTS = AWS Polly → App 播放） | 4 條 BDD + DoD ｜ [md](ac/M00-US-105.md) ｜ [html](ac/M00-US-105.html) | P1 | 5 | 等待校驗 | M00-US-104 |
 | M00-US-106 | US | M04 | 內容產出任務（read-only 工具 + 交付物 = 每日任務數嘅第一個來源） | 4 條 BDD + DoD ｜ [md](ac/M00-US-106.md) ｜ [html](ac/M00-US-106.html) | P0 | 5 | PENDING | M00-US-103, M00-US-104, M00-US-111 |
 | M00-US-111 | US | M02-M04 | 工具層 + 風險分級（Risk Gate）+ AuthProvider 可插拔認證 | 4 條 BDD + DoD ｜ [md](ac/M00-US-111.md) ｜ [html](ac/M00-US-111.html) | P0 | 5 | 等待校驗 | M00-US-103 |
 | M00-US-112 | US | M05 | 外部服務工具接入（首個 target 待定：GitHub / Gmail / Notion） | 4 條 BDD + DoD ｜ [md](ac/M00-US-112.md) ｜ [html](ac/M00-US-112.html) | P1 | 8 | PENDING | M00-US-111, M00-US-113 |
@@ -209,6 +209,7 @@
 - **業務規則**: TTS 一律用 AWS Polly voice `Hiujin`（yue-CN，**engine 必須 neural**）；格式 mp3（通知附件唔用 opus，iOS 支援唔穩）；App 內播報只讀前 150 字；通知版 ≤ 30 字摘要；mp3 存 S3 ＋ URL 交付；cache 24 小時；長回覆（> 800 字）只播前段並提示「全文睇螢幕」
 - **依賴**: AWS Polly、M00-US-131（push 通知）
 - **驗收方式**: 跑 `REGRESSION_MODULE=M00 ./run_pipeline.sh M00-US-105`
+- **實測結論**: **本地 TTS 已完成**（plugins/tauri-plugin-ios-tts/）：AVSpeechSynthesizer，粵語 voice 優先（yue-HK → zh-HK → zh-TW → en-US），音訊階段 .playback + .spokenAudio（靜音掣都出聲，符合「走路時聽」）。App 端：每條 Agent 回覆有「讀出嚟」掣 ＋ 設定可開「自動讀出」；command：tts_speak / tts_stop / tts_status。**未做**：**AWS Polly 路徑**（Hiujin 粵語，聲質好啲但要經 relay 傳 mp3 落手機播 —— 等推播憑證同音訊方案一齊做）
 - **為什麼這個優先**: P1：語音回覆明顯提升「唔使望住屏幕」嘅體驗，但唔阻塞核心任務流。
 - **需求錨點**: [req/M00-US-105-requirement.md](req/M00-US-105-requirement.md)
 
